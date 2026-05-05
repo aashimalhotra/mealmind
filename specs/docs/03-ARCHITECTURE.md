@@ -9,7 +9,8 @@
 | Database | SQLite (Phase 1) → PostgreSQL (Phase 4) | Simple for single household, migrate when multi-user |
 | LLM Proxy | LiteLLM | Route between local Ollama and cloud models |
 | Local LLM | Ollama (on Proxmox VM) | Free inference for quick tasks |
-| Cloud LLM | Anthropic Claude / OpenAI (via LiteLLM) | Heavier reasoning: plan generation, nutritional analysis |
+| Cloud LLM | Anthropic Claude / OpenAI (via LiteLLM) | Heavier reasoning: plan generation, gap analysis, chat |
+| Nutrition API | USDA FoodData Central (free, no key required) | Deterministic per-ingredient macro lookup; LLM fallback for unmatched items |
 | Deployment | Docker/Podman on home server | Self-hosted, behind Tailscale for remote access |
 | Auth | Simple PIN or local-only access (Phase 1) → proper auth (Phase 4) | Two-person household doesn't need OAuth yet |
 
@@ -35,19 +36,24 @@
          │
     ┌────┴────┐
     │         │
-┌───▼──┐ ┌───▼──────────┐
-│SQLite│ │ LiteLLM Proxy │
-│      │ │  ├─ Ollama    │ ← local: grocery list formatting, portion math
-│      │ │  └─ Claude    │ ← cloud: plan generation, nutritional analysis, chat
-└──────┘ └──────────────┘
+┌───▼──┐ ┌───▼──────────┐ ┌─────────────────────────┐
+│SQLite│ │ LiteLLM Proxy │ │ USDA FoodData Central   │
+│      │ │  ├─ Ollama    │ │ (external API, no key)  │
+│      │ │  └─ Claude    │ │ Per-ingredient macros   │
+└──────┘ └──────────────┘ └─────────────────────────┘
+           │  ├─ Ollama    ← local: grocery list formatting, portion math
+           │  └─ Claude    ← cloud: plan generation, gap analysis, chat
 ```
 
 ## LLM Routing Strategy
 
-| Task | Model | Rationale |
+| Task | Owner | Rationale |
 |---|---|---|
 | Meal plan generation | Cloud (Claude) | Complex multi-constraint reasoning |
-| Nutritional gap analysis | Cloud (Claude) | Requires holistic week review |
+| Per-ingredient macro lookup | USDA FoodData Central | Deterministic, authoritative, free |
+| Per-ingredient macro (no USDA match) | Cloud (Claude) — fallback only | Flag result as estimated in DB |
+| Macro aggregation (ingredient → meal) | Backend math | Simple arithmetic, no LLM needed |
+| Nutritional gap analysis | Cloud (Claude) | Requires holistic week-level reasoning |
 | Chat copilot (open-ended) | Cloud (Claude) | Conversational quality matters |
 | Grocery list consolidation | Local (Ollama) | Structured, formulaic task |
 | Portion scaling math | Local (Ollama) | Simple arithmetic |
@@ -95,7 +101,8 @@ CREATE TABLE recipes (
     method_summary  TEXT,                    -- brief cooking method for recipe card
     serving_instructions TEXT,              -- reheat + plate steps (JSON array)
     prep_steps      TEXT,                    -- full prep steps for prep guide (JSON array)
-    ingredients     TEXT NOT NULL,           -- JSON array of {name, quantity_1500, quantity_1800, unit, usda_food_id?}
+    ingredients     TEXT NOT NULL,           -- JSON array of {name, quantity_1500, quantity_1800, unit, usda_food_id, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, nutrition_source}
+                                             -- nutrition_source: "usda" | "llm_estimate"
     calories_per_serving INTEGER,
     protein_g       REAL,
     carbs_g         REAL,
@@ -290,7 +297,7 @@ services:
 
 ## Future Scale Considerations
 
-- **Recipe schema extensibility:** USDA food IDs on ingredients enable future nutrition API validation
+- **Nutrition accuracy:** USDA food IDs stored per ingredient; macros resolved at recipe-save time. `nutrition_source` flag lets UI surface confidence ("estimated" badge for LLM-fallback ingredients)
 - **Plan history as training data:** every approved plan + user tweaks builds a preference dataset
 - **Template caching:** frequently generated plan patterns can be cached to reduce LLM calls at scale
 - **Recipe corpus growth:** user-saved and AI-generated recipes accumulate, enabling collaborative filtering in Phase 4

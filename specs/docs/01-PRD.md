@@ -43,6 +43,7 @@ MealMind is a mobile-first PWA for AI-powered meal planning and batch cooking, d
    - User provides constraints (cuisine preference, prep days, dine-out days, dietary restrictions)
    - LLM generates a full week plan respecting macro targets and batch-cook feasibility
    - User reviews, approves, or asks for tweaks via chat
+   - Macro data resolved via USDA FoodData Central API on recipe save; LLM fallback only for unmatched ingredients
 
 3. **Recipe detail view**
    - Reference card for each meal: macros, calories, tags, veggie servings
@@ -82,10 +83,9 @@ MealMind is a mobile-first PWA for AI-powered meal planning and batch cooking, d
 
 ### Phase 2 — "Nutrition Brain"
 
-- Per-meal and per-day macro/calorie tracking (LLM-estimated, no manual entry)
+- Per-meal and per-day macro/calorie tracking (USDA-resolved, no manual entry)
 - Weekly nutritional gap analysis with proactive suggestions
 - Recipe memory: save favorites, tag dislikes, LLM draws from history
-- USDA FoodData Central validation layer for macro accuracy
 
 ### Phase 3 — "Chat Copilot Enhanced"
 

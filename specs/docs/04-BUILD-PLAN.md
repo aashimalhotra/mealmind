@@ -37,6 +37,9 @@
 - [ ] Weekly plan data structure and storage
 - [ ] Dashboard ↔ plan data binding (show real meals from approved plan)
 - [ ] Dine-out day handling (badge, no meal card)
+- [ ] USDA FoodData Central integration: fuzzy ingredient name → food ID + per-100g macros
+- [ ] Nutrition resolution service: USDA lookup first, LLM estimate fallback (flagged as `llm_estimate`)
+- [ ] Macro aggregation: compute `calories_per_serving`, `protein_g`, `carbs_g`, `fat_g` from ingredient quantities on recipe save
 
 ### Sprint 4: Recipe Detail (Week 5)
 
@@ -103,12 +106,11 @@
 
 ## Phase 2: Nutrition Brain (Week 11-14)
 
-- [ ] Per-meal macro tracking (LLM estimates macros from recipe descriptions)
+- [ ] Per-meal macro tracking (USDA-resolved; already stored on recipe, just aggregate per day)
 - [ ] Daily macro progress update on dashboard (rings fill based on completed meals)
-- [ ] Weekly nutritional gap analysis endpoint
+- [ ] Weekly nutritional gap analysis endpoint (LLM reasoning over aggregated daily macros)
 - [ ] Proactive AI insight: flag low iron, fiber, veggie shortfalls
 - [ ] Recipe memory: favorite/dislike toggles persisted and injected into plan generation prompt
-- [ ] USDA FoodData Central API integration for macro validation (optional, accuracy layer)
 - [ ] Plan history (last 4 weeks) injected into generation prompt to avoid repetition
 
 ---
