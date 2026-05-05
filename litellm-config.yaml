@@ -1,0 +1,13 @@
+# To add Anthropic later: add a new entry under model_list with model: anthropic/<model> and set LITELLM_PROXY_URL in app/config.py accordingly.
+model_list:
+  - model_name: mealmind-default
+    litellm_params:
+      model: ollama/llama3.1:8b-instruct
+      api_base: http://host.docker.internal:11434
+  - model_name: mealmind-json
+    litellm_params:
+      model: ollama/llama3.1:8b-instruct
+      api_base: http://host.docker.internal:11434
+      response_format: { "type": "json_object" }
+general_settings:
+  master_key: sk-mealmind-local-dev-only
