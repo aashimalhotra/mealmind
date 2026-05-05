@@ -13,6 +13,7 @@ dependencies = [
     "httpx",
     "sse-starlette",
     "python-multipart",
+    "cachetools",
 ]
 
 [dependency-groups]
