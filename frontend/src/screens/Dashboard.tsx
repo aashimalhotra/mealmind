@@ -5,7 +5,8 @@ import WeekStrip from '../components/WeekStrip';
 import PrepDayCard from '../components/PrepDayCard';
 import AIInsightCard from '../components/AIInsightCard';
 import PersonToggle from '../components/PersonToggle';
-import dashboardData, { PersonDashboardData } from '../fixtures/dashboard';
+import dashboardData from '../fixtures/dashboard';
+import type { PersonDashboardData } from '../fixtures/dashboard';
 
 // Meal data for today's meals
 const todaysMeals = [

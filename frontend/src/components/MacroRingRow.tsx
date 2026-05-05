@@ -1,5 +1,5 @@
 import MacroRing from './MacroRing';
-import { DashboardData } from '../fixtures/dashboard';
+import type { DashboardData } from '../fixtures/dashboard';
 
 interface MacroRingRowProps {
   data: DashboardData;
