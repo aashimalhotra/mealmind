@@ -1,16 +1,3 @@
-# Python
-__pycache__/
-.venv/
-*.pyc
-.pytest_cache/
-.coverage
-
-# Node
-node_modules/
-dist/
-dev-dist/
-.vite/
-
 # OS
 .DS_Store
 

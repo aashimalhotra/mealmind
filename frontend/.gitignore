@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+test-results
+
+# Node
+node_modules/
+dist/
+dev-dist/
+.vite/
