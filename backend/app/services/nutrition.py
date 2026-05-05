@@ -6,6 +6,7 @@ already in grams. The LLM-generated plan in step 3.4 produces grams.
 Future sprints may add unit conversion (cup, tsp, ml, piece -> grams).
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Optional
 
@@ -16,6 +17,8 @@ from app.schemas.recipe import Ingredient
 from app.db.models import Recipe
 from sqlalchemy.orm import Session
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class ResolvedIngredient:
@@ -24,13 +27,15 @@ class ResolvedIngredient:
     Attributes:
         name: Ingredient name
         usda_food_id: USDA FDC ID if resolved via USDA, None if LLM fallback
-        macros_per_100g: Nutrition macros per 100g
+        macros_per_100g: Nutrition macros per 100g, None if resolution failed
         nutrition_source: "usda" or "llm_estimate"
+        note: Optional note about resolution (e.g., failure reason)
     """
     name: str
     usda_food_id: Optional[int]
-    macros_per_100g: USDAMacros
+    macros_per_100g: Optional[USDAMacros]
     nutrition_source: str
+    note: Optional[str] = None
 
 
 def _make_macros_from_dict(data: dict) -> USDAMacros:
@@ -83,13 +88,15 @@ async def resolve_ingredient(name: str) -> ResolvedIngredient:
             macros_per_100g=macros,
             nutrition_source="llm_estimate",
         )
-    except Exception:
-        # If LLM fails, return zero macros with llm_estimate source
+    except Exception as e:
+        # Log the failure and return None macros with llm_estimate source
+        logger.warning(f"Failed to resolve nutrition for ingredient '{name}': {e}")
         return ResolvedIngredient(
             name=name,
             usda_food_id=None,
-            macros_per_100g=USDAMacros(calories=0, protein_g=0, carbs_g=0, fat_g=0),
+            macros_per_100g=None,  # Null macros per spec
             nutrition_source="llm_estimate",
+            note=f"Nutrition resolution failed: {str(e)[:100]}"  # Truncate long errors
         )
 
 
@@ -150,14 +157,25 @@ async def resolve_recipe_nutrition(recipe: Recipe, db: Session) -> None:
         recipe: Recipe ORM object
         db: SQLAlchemy session
     """
-    # Parse ingredients from JSON
-    ingredients_data = recipe.ingredients
-    if not ingredients_data:
+    import json
+    # Parse ingredients from JSON string
+    ingredients_json = recipe.ingredients
+    if not ingredients_json:
+        return
+    
+    try:
+        ingredients_data = json.loads(ingredients_json)
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON in recipe {recipe.id} ingredients: {e}")
         return
     
     from pydantic import TypeAdapter
     adapter = TypeAdapter(list[Ingredient])
-    ingredients = adapter.validate_python(ingredients_data)
+    try:
+        ingredients = adapter.validate_python(ingredients_data)
+    except Exception as e:
+        logger.error(f"Failed to parse ingredients for recipe {recipe.id}: {e}")
+        return
     
     updated = False
     
@@ -175,11 +193,21 @@ async def resolve_recipe_nutrition(recipe: Recipe, db: Session) -> None:
         
         # Update ingredient with resolved data
         ing.usda_food_id = resolved.usda_food_id
-        ing.calories_per_100g = resolved.macros_per_100g.calories
-        ing.protein_per_100g = resolved.macros_per_100g.protein_g
-        ing.carbs_per_100g = resolved.macros_per_100g.carbs_g
-        ing.fat_per_100g = resolved.macros_per_100g.fat_g
         ing.nutrition_source = resolved.nutrition_source
+        ing.note = resolved.note
+        
+        if resolved.macros_per_100g is not None:
+            # Successfully resolved macros
+            ing.calories_per_100g = resolved.macros_per_100g.calories
+            ing.protein_per_100g = resolved.macros_per_100g.protein_g
+            ing.carbs_per_100g = resolved.macros_per_100g.carbs_g
+            ing.fat_per_100g = resolved.macros_per_100g.fat_g
+        else:
+            # Resolution failed - set null macros per spec
+            ing.calories_per_100g = None
+            ing.protein_per_100g = None
+            ing.carbs_per_100g = None
+            ing.fat_per_100g = None
         
         updated = True
     
@@ -194,7 +222,7 @@ async def resolve_recipe_nutrition(recipe: Recipe, db: Session) -> None:
     
     # Persist changes
     if updated:
-        # Update the JSON ingredients field
-        recipe.ingredients = [ing.model_dump() for ing in ingredients]
+        # Update the JSON ingredients field (serialize to string)
+        recipe.ingredients = json.dumps([ing.model_dump() for ing in ingredients])
         db.add(recipe)
         db.commit()
