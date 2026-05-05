@@ -93,9 +93,10 @@ const Dashboard: React.FC = () => {
         meals.push({
           slot,
           time: slotTimes[slot],
-          title: 'Dine out',
+          title: 'Dining out tonight',
           macros: { kcal: 0, p: 0, c: 0, f: 0 },
           dimmed: true,
+          dineOut: true,
         });
       } else if (meal.recipe_id) {
         // TODO: Fetch recipe details to get title and macros (Phase 2)
@@ -281,6 +282,7 @@ const Dashboard: React.FC = () => {
                 title={meal.title}
                 macros={meal.macros}
                 dimmed={meal.dimmed}
+                dineOut={meal.dineOut}
               />
             ))
           ) : (

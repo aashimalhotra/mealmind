@@ -71,8 +71,8 @@ describe('Dashboard', () => {
     });
   });
 
-  // Test 3: Fixture plan renders today's meals
-  it('renders today\'s meals when plan data is available', async () => {
+  // Test 3: Fixture plan renders today's meals with dine-out handling
+  it('renders today\'s meals and handles dine-out slots correctly', async () => {
     const todayWeekday = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][
       new Date().getDay()
     ];
@@ -97,10 +97,21 @@ describe('Dashboard', () => {
     renderWithQueryClient(<Dashboard />);
     
     await waitFor(() => {
-      // Should show today's meals
+      // Should show regular meals with recipe IDs
       expect(screen.getByText(/recipe-1/i)).toBeInTheDocument();
       expect(screen.getByText(/recipe-2/i)).toBeInTheDocument();
-      expect(screen.getByText(/dine out/i)).toBeInTheDocument();
     });
+
+    // Dine-out meal should show "Dining out tonight" title
+    expect(screen.getByText(/dining out tonight/i)).toBeInTheDocument();
+    
+    // Dine-out meal should render MealTypeBadge with "Dine out" label
+    expect(screen.getByText('Dine out')).toBeInTheDocument();
+    
+    // Dine-out meal should NOT show macros (kcal text)
+    const dineOutSection = screen.getByText(/dining out tonight/i).closest('div');
+    expect(dineOutSection).toBeInTheDocument();
+    // Check that the dine-out section doesn't contain macro information
+    expect(dineOutSection?.textContent).not.toMatch(/\d+ kcal/);
   });
 });
