@@ -1,0 +1,83 @@
+:root {
+  /* Core Colors */
+  --color-primary: #C45B28;
+  --color-secondary: #4A8C5C;
+  --color-accent-gold: #C49B28;
+  --color-accent-olive: #6B8C3A;
+
+  /* Background & Surface */
+  --color-bg: #FAF6F0;
+  --color-surface: #FFFFFF;
+  --color-surface-warm: #FFF8ED;
+  --color-border: #E8DDD0;
+  --color-border-light: #F0E6D8;
+
+  /* Text */
+  --color-text-primary: #3D2E1F;
+  --color-text-secondary: #6B5A48;
+  --color-text-tertiary: #8C7B6B;
+  --color-text-placeholder: #B8ADA0;
+
+  /* Macro Ring Colors */
+  --color-protein: #C45B28;
+  --color-carbs: #C49B28;
+  --color-fat: #4A8C5C;
+  --color-veggies: #6B8C3A;
+
+  /* Semantic Colors */
+  --color-success: #4A8C5C;
+  --color-prep-day: #4A8C5C;
+  --color-dine-out: #C49B28;
+  --color-ai-surface: #FFF8ED;
+  --color-ai-accent: #C49B28;
+
+  /* Dark UI */
+  --color-dark-bg: #3D2E1F;
+  --color-dark-text: #FFFFFF;
+  --color-dark-text-muted: rgba(255, 255, 255, 0.5);
+
+  /* Macro Tag Backgrounds */
+  --color-protein-bg: #FDF5EE;
+  --color-carbs-bg: #FBF6E8;
+  --color-fat-bg: #EDF5F0;
+  --color-veggies-bg: #F2F5EC;
+
+  /* Typography Sizes */
+  --font-size-xs: 10px;
+  --font-size-sm: 11px;
+  --font-size-body-sm: 12px;
+  --font-size-body: 13px;
+  --font-size-body-lg: 14px;
+  --font-size-input: 14px;
+  --font-size-card-title: 15px;
+  --font-size-section: 16px;
+  --font-size-screen-title: 18px;
+  --font-size-heading: 20px;
+  --font-size-page-title: 22px;
+  --font-size-timer: 42px;
+
+  /* Typography Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-card: 12px;
+  --radius-card-lg: 14px;
+  --radius-active-step: 16px;
+  --radius-page: 24px;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 6px;
+  --space-md: 8px;
+  --space-lg: 10px;
+  --space-xl: 12px;
+  --space-2xl: 14px;
+  --space-3xl: 16px;
+  --space-4xl: 18px;
+  --space-5xl: 20px;
+  --page-padding: 20px;
+}
