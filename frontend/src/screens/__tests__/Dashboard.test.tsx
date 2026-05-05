@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import Dashboard from '../Dashboard';
 import { getCurrentPlan, generatePlan } from '../../api/plans';
 import type { PlanOut, PlanData } from '../../api/plans';
@@ -28,7 +29,7 @@ class MockEventSource {
   }
 }
 
-// Test wrapper with QueryClient
+// Test wrapper with QueryClient and Router
 function renderWithQueryClient(ui: React.ReactNode) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -36,7 +37,9 @@ function renderWithQueryClient(ui: React.ReactNode) {
     },
   });
   return render(
-    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    </MemoryRouter>
   );
 }
 

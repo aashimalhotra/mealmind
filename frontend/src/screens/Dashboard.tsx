@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MacroRingRow from '../components/MacroRingRow';
 import MealCard from '../components/MealCard';
 import WeekStrip from '../components/WeekStrip';
@@ -36,6 +37,7 @@ const WeekStripSkeleton = () => (
 );
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedPerson, setSelectedPerson] = useState<1500 | 1800>(1500);
   const [genStage, setGenStage] = useState<string | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
@@ -49,23 +51,26 @@ const Dashboard: React.FC = () => {
     setGenError(null);
     const eventSource = generatePlan();
     
+    // Listen for progress stages (default message events)
     eventSource.onmessage = (event) => {
       const stage = event.data;
-      if (stage === 'done') {
-        eventSource.close();
-        setGenStage(null);
-        refetch(); // Refresh plan data
-      } else {
-        setGenStage(stage);
-      }
+      setGenStage(stage);
     };
+
+    // Listen for 'done' event with plan_id
+    eventSource.addEventListener('done', (event) => {
+      const planId = event.data;
+      eventSource.close();
+      setGenStage(null);
+      navigate(`/plan/review/${planId}`);
+    });
 
     eventSource.onerror = () => {
       eventSource.close();
       setGenError('Failed to generate plan. Please try again.');
       setGenStage(null);
     };
-  }, [refetch]);
+  }, [navigate]);
 
   // Derive today's data from plan when available
   const todayMeals = React.useMemo(() => {

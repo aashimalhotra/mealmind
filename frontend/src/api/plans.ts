@@ -55,6 +55,14 @@ export function generatePlan(): EventSource {
 }
 
 /**
+ * Fetch a specific plan by ID
+ * GET /api/plans/{id}
+ */
+export async function getPlan(planId: string): Promise<PlanOut> {
+  return apiGet(`/api/plans/${planId}`) as Promise<PlanOut>;
+}
+
+/**
  * Approve a plan by ID (sets status to 'approved')
  * PATCH /api/plans/{id}
  */
