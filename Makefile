@@ -1,4 +1,4 @@
-.PHONY: help dev down backend-test frontend-test lint migrate seed
+.PHONY: help dev down backend-test frontend-test frontend-e2e lint migrate seed
 
 help:
 	@echo "Available targets:"
@@ -31,3 +31,6 @@ migrate:
 
 seed:
 	cd backend && python scripts/seed.py
+
+frontend-e2e:
+	cd frontend && pnpm exec playwright test
