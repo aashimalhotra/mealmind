@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MacroRingRow from '../components/MacroRingRow';
 import MealCard from '../components/MealCard';
@@ -7,7 +7,7 @@ import PrepDayCard from '../components/PrepDayCard';
 import AIInsightCard from '../components/AIInsightCard';
 import PersonToggle from '../components/PersonToggle';
 import { useCurrentPlan } from '../hooks/useCurrentPlan';
-import { generatePlan, approvePlan, PlanOut } from '../api/plans';
+import { generatePlan } from '../api/plans';
 
 // Helper to get today's weekday (lowercase, e.g., 'monday')
 function getTodayWeekday(): string {

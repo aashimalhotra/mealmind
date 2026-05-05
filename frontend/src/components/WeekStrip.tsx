@@ -31,7 +31,7 @@ const WeekStrip: React.FC<WeekStripProps> = ({ days, onSelectDay }) => {
             ? 'text-white/70'
             : 'text-[var(--color-text-tertiary)]';
 
-        const dayNumColor = isToday ? 'text-white' : 'text-[var(--color-text-primary)]';
+        // const dayNumColor = isToday ? 'text-white' : 'text-[var(--color-text-primary)]';
 
         return (
           <div

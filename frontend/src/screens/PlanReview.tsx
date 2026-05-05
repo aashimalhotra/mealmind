@@ -1,7 +1,8 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getPlan, approvePlan, PlanOut } from '../api/plans';
+import { getPlan, approvePlan } from '../api/plans';
+import type { PlanOut } from '../api/plans';
 import PlanWeekGrid from '../components/PlanWeekGrid';
 
 const PlanReview: React.FC = () => {

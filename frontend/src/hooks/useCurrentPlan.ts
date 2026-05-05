@@ -1,5 +1,7 @@
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import { getCurrentPlan, PlanOut } from '../api/plans';
+import { useQuery } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
+import { getCurrentPlan} from '../api/plans';
+import type { PlanOut } from '../api/plans';
 
 export function useCurrentPlan(): UseQueryResult<PlanOut, Error> & { refetch: () => void } {
   return useQuery<PlanOut, Error>({

@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlanData, MealSlot } from '../api/plans';
+import type { PlanData, MealSlot } from '../api/plans';
 
 interface MealInfo {
   title: string;
