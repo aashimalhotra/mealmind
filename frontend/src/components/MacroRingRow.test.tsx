@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import MacroRingRow from './MacroRingRow';
-import dashboardData from '../fixtures/dashboard';
+import { dashboardData } from '../fixtures/dashboard';
 
 describe('MacroRingRow', () => {
   it('renders all four macro labels and correct calorie summary', () => {
