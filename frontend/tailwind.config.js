@@ -59,6 +59,7 @@ export default {
         '4xl': '18px',
         '5xl': '20px',
         'page-padding': '20px',
+        page: '20px',
       },
       borderRadius: {
         sm: '6px',
