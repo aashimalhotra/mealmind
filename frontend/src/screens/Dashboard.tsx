@@ -1,56 +1,127 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import MacroRingRow from '../components/MacroRingRow';
 import MealCard from '../components/MealCard';
 import WeekStrip from '../components/WeekStrip';
 import PrepDayCard from '../components/PrepDayCard';
 import AIInsightCard from '../components/AIInsightCard';
 import PersonToggle from '../components/PersonToggle';
-import dashboardData from '../fixtures/dashboard';
-import type { PersonDashboardData } from '../fixtures/dashboard';
+import { useCurrentPlan } from '../hooks/useCurrentPlan';
+import { generatePlan, approvePlan, PlanOut } from '../api/plans';
 
-// Meal data for today's meals
-const todaysMeals = [
-  {
-    slot: 'breakfast' as const,
-    time: '8:00 AM',
-    title: 'Chickpea flour crepes + mint chutney',
-    macros: { kcal: 320, p: 18, c: 28, f: 16 },
-  },
-  {
-    slot: 'lunch' as const,
-    time: '12:30 PM',
-    title: 'Tandoori chicken + cumin rice + lentil soup',
-    macros: { kcal: 570, p: 42, c: 52, f: 18 },
-  },
-  {
-    slot: 'dinner' as const,
-    time: '7:00 PM',
-    title: 'Spiced cauliflower & potato + flatbread + yogurt dip',
-    macros: { kcal: 410, p: 14, c: 48, f: 18 },
-    dimmed: true,
-  },
-];
+// Helper to get today's weekday (lowercase, e.g., 'monday')
+function getTodayWeekday(): string {
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  return days[new Date().getDay()];
+}
 
-// Week data
-const weekDays = [
-  { date: '2025-05-04', dayShort: 'Mon' as const, dayNum: 4, isToday: true, isPrepDay: false, isDineOut: false },
-  { date: '2025-05-05', dayShort: 'Tue' as const, dayNum: 5, isToday: false, isPrepDay: false, isDineOut: false },
-  { date: '2025-05-06', dayShort: 'Wed' as const, dayNum: 6, isToday: false, isPrepDay: true, isDineOut: false },
-  { date: '2025-05-07', dayShort: 'Thu' as const, dayNum: 7, isToday: false, isPrepDay: false, isDineOut: false },
-  { date: '2025-05-08', dayShort: 'Fri' as const, dayNum: 8, isToday: false, isPrepDay: false, isDineOut: true },
-  { date: '2025-05-09', dayShort: 'Sat' as const, dayNum: 9, isToday: false, isPrepDay: false, isDineOut: false },
-  { date: '2025-05-10', dayShort: 'Sun' as const, dayNum: 10, isToday: false, isPrepDay: false, isDineOut: true },
-];
+// Skeleton loaders
+const MacroRingSkeleton = () => (
+  <div className="flex justify-center gap-4 my-4">
+    {[1, 2, 3, 4].map((i) => (
+      <div key={i} className="w-20 h-20 rounded-full bg-gray-200 animate-pulse" />
+    ))}
+  </div>
+);
+
+const MealCardSkeleton = () => (
+  <div className="h-20 rounded-xl bg-gray-200 animate-pulse mb-3" />
+);
+
+const WeekStripSkeleton = () => (
+  <div className="flex gap-2 mb-4">
+    {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+      <div key={i} className="w-12 h-16 rounded-lg bg-gray-200 animate-pulse" />
+    ))}
+  </div>
+);
 
 const Dashboard: React.FC = () => {
   const [selectedPerson, setSelectedPerson] = useState<1500 | 1800>(1500);
+  const [genStage, setGenStage] = useState<string | null>(null);
+  const [genError, setGenError] = useState<string | null>(null);
+  
+  const { data: plan, isLoading, isError, error, refetch } = useCurrentPlan();
+  const todayWeekday = getTodayWeekday();
 
-  const data: PersonDashboardData = dashboardData;
-  const currentData = selectedPerson === 1500 ? data.person1500 : data.person1800;
+  // Handle plan generation SSE
+  const handleGeneratePlan = useCallback(() => {
+    setGenStage('Starting…');
+    setGenError(null);
+    const eventSource = generatePlan();
+    
+    eventSource.onmessage = (event) => {
+      const stage = event.data;
+      if (stage === 'done') {
+        eventSource.close();
+        setGenStage(null);
+        refetch(); // Refresh plan data
+      } else {
+        setGenStage(stage);
+      }
+    };
+
+    eventSource.onerror = () => {
+      eventSource.close();
+      setGenError('Failed to generate plan. Please try again.');
+      setGenStage(null);
+    };
+  }, [refetch]);
+
+  // Derive today's data from plan when available
+  const todayMeals = React.useMemo(() => {
+    if (!plan?.plan_data) return [];
+    const dayData = plan.plan_data[todayWeekday];
+    if (!dayData) return [];
+
+    const meals = [];
+    const slotOrder = ['breakfast', 'lunch', 'dinner'] as const;
+    const slotTimes = {
+      breakfast: '8:00 AM',
+      lunch: '12:30 PM',
+      dinner: '7:00 PM',
+    };
+
+    for (const slot of slotOrder) {
+      const meal = dayData[slot];
+      if (!meal) continue;
+      if (meal.meal_type === 'dine-out') {
+        meals.push({
+          slot,
+          time: slotTimes[slot],
+          title: 'Dine out',
+          macros: { kcal: 0, p: 0, c: 0, f: 0 },
+          dimmed: true,
+        });
+      } else if (meal.recipe_id) {
+        // TODO: Fetch recipe details to get title and macros (Phase 2)
+        // For now, use placeholder until recipe API is integrated
+        meals.push({
+          slot,
+          time: slotTimes[slot],
+          title: `Recipe ${meal.recipe_id.slice(0, 8)}…`,
+          macros: { kcal: 0, p: 0, c: 0, f: 0 }, // Placeholder
+          dimmed: false,
+        });
+      }
+    }
+    return meals;
+  }, [plan, todayWeekday]);
+
+  // Compute today's macro totals (placeholder since we don't have recipe macros yet)
+  const todaysTotals = React.useMemo(() => {
+    return todayMeals.reduce(
+      (acc, meal) => ({
+        kcal: acc.kcal + meal.macros.kcal,
+        p: acc.p + meal.macros.p,
+        c: acc.c + meal.macros.c,
+        f: acc.f + meal.macros.f,
+      }),
+      { kcal: 0, p: 0, c: 0, f: 0 }
+    );
+  }, [todayMeals]);
 
   // Get user initials for avatar
   const userInitials = 'AD';
-
   // Format current date
   const today = new Date();
   const dateLabel = today.toLocaleDateString('en-US', {
@@ -58,84 +129,181 @@ const Dashboard: React.FC = () => {
     month: 'short',
     day: 'numeric',
   }).toUpperCase();
-  const greeting = 'Good morning';
+  const greeting = () => {
+    const hour = today.getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
 
+  // --- Loading State ---
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-bg">
+        <div
+          style={{
+            background: 'linear-gradient(180deg, #E8DDD0 0%, #FAF6F0 100%)',
+            padding: '20px 20px 12px',
+          }}
+        >
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <p className="text-body-sm text-text-tertiary font-medium m-0" style={{ letterSpacing: '0.5px' }}>
+                {dateLabel}
+              </p>
+              <p className="text-page-title font-medium text-text-primary m-0 mt-1">
+                {greeting()}
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" />
+          </div>
+          <div className="mb-4">
+            <PersonToggle value={selectedPerson} onChange={setSelectedPerson} />
+          </div>
+          <MacroRingSkeleton />
+        </div>
+        <div className="px-[var(--page-padding)]">
+          <h2 className="text-body-lg font-medium text-text-primary mt-4 mb-3">Today's meals</h2>
+          <div className="flex flex-col gap-3 mb-4">
+            {[1, 2, 3].map((i) => (
+              <MealCardSkeleton key={i} />
+            ))}
+          </div>
+          <h2 className="text-body-lg font-medium text-text-primary mt-4 mb-3">This week</h2>
+          <WeekStripSkeleton />
+          <div className="h-24 rounded-xl bg-gray-200 animate-pulse mb-4" />
+          <div className="h-20 rounded-xl bg-gray-200 animate-pulse" />
+        </div>
+        <div className="h-[80px]" />
+      </div>
+    );
+  }
+
+  // --- Error State (404 = No plan) ---
+  if (isError) {
+    const is404 = error?.message?.includes('404');
+    return (
+      <div className="min-h-screen bg-bg flex flex-col items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-2xl p-8 shadow-sm text-center">
+          {is404 ? (
+            <>
+              <h2 className="text-heading-md font-medium text-text-primary mb-2">No plan yet</h2>
+              <p className="text-body-sm text-text-tertiary mb-6">
+                Generate your first weekly meal plan to get started.
+              </p>
+              {genStage ? (
+                <div className="mb-4">
+                  <p className="text-body-sm text-text-secondary">{genStage}</p>
+                  <div className="w-full h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
+                    <div className="h-full bg-primary rounded-full animate-pulse" />
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={handleGeneratePlan}
+                  className="w-full py-3 px-6 bg-primary text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+                >
+                  Generate this week's plan
+                </button>
+              )}
+              {genError && <p className="text-red-500 text-sm mt-2">{genError}</p>}
+            </>
+          ) : (
+            <>
+              <h2 className="text-heading-md font-medium text-text-primary mb-2">Error loading plan</h2>
+              <p className="text-body-sm text-text-tertiary mb-6">{error?.message}</p>
+              <button
+                onClick={() => refetch()}
+                className="w-full py-3 px-6 bg-primary text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+              >
+                Retry
+              </button>
+            </>
+          )}
+        </div>
+        <div className="h-[80px]" />
+      </div>
+    );
+  }
+
+  // --- Data State (Plan exists) ---
   return (
     <div className="min-h-screen bg-bg">
-      {/* Top gradient header */}
       <div
         style={{
           background: 'linear-gradient(180deg, #E8DDD0 0%, #FAF6F0 100%)',
           padding: '20px 20px 12px',
         }}
       >
-        {/* Greeting row with avatar */}
         <div className="flex justify-between items-center mb-4">
           <div>
             <p className="text-body-sm text-text-tertiary font-medium m-0" style={{ letterSpacing: '0.5px' }}>
               {dateLabel}
             </p>
             <p className="text-page-title font-medium text-text-primary m-0 mt-1">
-              {greeting}
+              {greeting()}
             </p>
           </div>
-          <div
-            className="w-10 h-10 rounded-full bg-[#C4956A] flex items-center justify-center font-medium text-sm text-text-primary"
-          >
+          <div className="w-10 h-10 rounded-full bg-[#C4956A] flex items-center justify-center font-medium text-sm text-text-primary">
             {userInitials}
           </div>
         </div>
-
-        {/* Person Toggle */}
         <div className="mb-4">
           <PersonToggle value={selectedPerson} onChange={setSelectedPerson} />
         </div>
-
-        {/* Macro Ring Row */}
-        <MacroRingRow data={currentData} />
+        {/* TODO: Replace with real macro data from plan + user targets (Phase 2) */}
+        <MacroRingRow
+          data={{
+            macros: [
+              { label: 'Protein', current: todaysTotals.p, target: selectedPerson * 0.3, unit: 'g', color: '#C45B28', centerText: `${Math.round((todaysTotals.p / (selectedPerson * 0.3)) * 100)}%` },
+              { label: 'Carbs', current: todaysTotals.c, target: selectedPerson * 0.3, unit: 'g', color: '#C49B28', centerText: `${Math.round((todaysTotals.c / (selectedPerson * 0.3)) * 100)}%` },
+              { label: 'Fat', current: todaysTotals.f, target: selectedPerson * 0.4, unit: 'g', color: '#4A8C5C', centerText: `${Math.round((todaysTotals.f / (selectedPerson * 0.4)) * 100)}%` },
+              { label: 'Veggies', current: 0, target: 5, unit: 'srv', color: '#6B8C3A', centerText: '0/5' },
+            ],
+            calories: { current: todaysTotals.kcal, target: selectedPerson },
+          }}
+        />
       </div>
-
-      {/* Content area */}
       <div className="px-[var(--page-padding)]">
-        {/* Today's meals */}
-        <h2 className="text-body-lg font-medium text-text-primary mt-4 mb-3">
-          Today's meals
-        </h2>
+        <h2 className="text-body-lg font-medium text-text-primary mt-4 mb-3">Today's meals</h2>
         <div className="flex flex-col gap-3 mb-4">
-          {todaysMeals.map((meal, index) => (
-            <MealCard
-              key={index}
-              slot={meal.slot}
-              time={meal.time}
-              title={meal.title}
-              macros={meal.macros}
-              dimmed={meal.dimmed}
-            />
-          ))}
+          {todayMeals.length > 0 ? (
+            todayMeals.map((meal, index) => (
+              <MealCard
+                key={index}
+                slot={meal.slot}
+                time={meal.time}
+                title={meal.title}
+                macros={meal.macros}
+                dimmed={meal.dimmed}
+              />
+            ))
+          ) : (
+            <p className="text-body-sm text-text-tertiary">No meals planned for today.</p>
+          )}
         </div>
-
-        {/* This week */}
-        <h2 className="text-body-lg font-medium text-text-primary mt-4 mb-3">
-          This week
-        </h2>
+        <h2 className="text-body-lg font-medium text-text-primary mt-4 mb-3">This week</h2>
         <div className="mb-4">
-          <WeekStrip days={weekDays} />
+          {/* TODO: Replace with real week data from plan (Phase 2) */}
+          <WeekStrip
+            days={[
+              { date: '2025-05-04', dayShort: 'Mon' as const, dayNum: 4, isToday: true, isPrepDay: false, isDineOut: false },
+              { date: '2025-05-05', dayShort: 'Tue' as const, dayNum: 5, isToday: false, isPrepDay: false, isDineOut: false },
+              { date: '2025-05-06', dayShort: 'Wed' as const, dayNum: 6, isToday: false, isPrepDay: true, isDineOut: false },
+              { date: '2025-05-07', dayShort: 'Thu' as const, dayNum: 7, isToday: false, isPrepDay: false, isDineOut: false },
+              { date: '2025-05-08', dayShort: 'Fri' as const, dayNum: 8, isToday: false, isPrepDay: false, isDineOut: true },
+              { date: '2025-05-09', dayShort: 'Sat' as const, dayNum: 9, isToday: false, isPrepDay: false, isDineOut: false },
+              { date: '2025-05-10', dayShort: 'Sun' as const, dayNum: 10, isToday: false, isPrepDay: false, isDineOut: true },
+            ]}
+          />
         </div>
-
-        {/* Prep Day Card */}
         <PrepDayCard
           dayLabel="Prep day — Wednesday"
           summary="Spiced ground meat + creamy spinach + quinoa pilaf"
           durationLabel="~1.5 hrs · covers Thu–Sat"
         />
-
-        {/* AI Insight Card */}
-        <AIInsightCard
-          body="You're low on iron this week. Consider adding spinach to tomorrow's lunch."
-        />
+        <AIInsightCard body="You're low on iron this week. Consider adding spinach to tomorrow's lunch." />
       </div>
-
-      {/* Bottom padding to account for fixed nav */}
       <div className="h-[80px]" />
     </div>
   );

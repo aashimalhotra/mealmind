@@ -1,56 +1,103 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Dashboard from '../Dashboard';
+import { getCurrentPlan, generatePlan } from '../../api/plans';
+import type { PlanOut, PlanData } from '../../api/plans';
+
+// Mock the API module
+vi.mock('../../api/plans', () => ({
+  getCurrentPlan: vi.fn(),
+  generatePlan: vi.fn(),
+  approvePlan: vi.fn(),
+}));
+
+// Mock EventSource for SSE tests
+class MockEventSource {
+  onmessage: ((event: { data: string }) => void) | null = null;
+  onerror: (() => void) | null = null;
+  close = vi.fn();
+  constructor() {
+    // Simulate SSE events in tests
+  }
+  simulateMessage(data: string) {
+    if (this.onmessage) this.onmessage({ data });
+  }
+  simulateError() {
+    if (this.onerror) this.onerror();
+  }
+}
+
+// Test wrapper with QueryClient
+function renderWithQueryClient(ui: React.ReactNode) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+    },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+  );
+}
 
 describe('Dashboard', () => {
-  it('renders all four macro ring labels', () => {
-    render(<Dashboard />);
-
-    expect(screen.getByText('Protein')).toBeInTheDocument();
-    expect(screen.getByText('Carbs')).toBeInTheDocument();
-    expect(screen.getByText('Fat')).toBeInTheDocument();
-    expect(screen.getByText('Veggies')).toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('renders three meal titles', () => {
-    render(<Dashboard />);
-
-    expect(screen.getByText('Chickpea flour crepes + mint chutney')).toBeInTheDocument();
-    expect(screen.getByText('Tandoori chicken + cumin rice + lentil soup')).toBeInTheDocument();
-    expect(screen.getByText('Spiced cauliflower & potato + flatbread + yogurt dip')).toBeInTheDocument();
+  // Test 1: Loading state shows skeletons
+  it('renders skeletons when loading', () => {
+    (getCurrentPlan as vi.Mock).mockImplementationOnce(
+      () => new Promise(() => {}) // Never resolves (loading)
+    );
+    renderWithQueryClient(<Dashboard />);
+    
+    // Skeleton elements should be present
+    expect(document.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/today's meals/i)).toBeInTheDocument();
   });
 
-  it('displays 1500 kcal data by default', () => {
-    render(<Dashboard />);
-
-    expect(screen.getByText('890 / 1500 kcal')).toBeInTheDocument();
+  // Test 2: 404 error shows CTA
+  it('shows "Generate this week\'s plan" CTA when 404 error', async () => {
+    (getCurrentPlan as vi.Mock).mockRejectedValueOnce(new Error('GET /api/plans/current failed: 404'));
+    renderWithQueryClient(<Dashboard />);
+    
+    await waitFor(() => {
+      expect(screen.getByText(/no plan yet/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /generate this week's plan/i })).toBeInTheDocument();
+    });
   });
 
-  it('toggling to 1800 changes the kcal line', () => {
-    render(<Dashboard />);
-
-    // Verify initial state shows 1500 data
-    expect(screen.getByText('890 / 1500 kcal')).toBeInTheDocument();
-
-    // Click the 1800 toggle button
-    const toggle1800 = screen.getByText('1800');
-    fireEvent.click(toggle1800);
-
-    // Verify it now shows 1800 data
-    expect(screen.getByText('1050 / 1800 kcal')).toBeInTheDocument();
-    expect(screen.queryByText('890 / 1500 kcal')).not.toBeInTheDocument();
-  });
-
-  it('toggling back to 1500 restores 1500 data', () => {
-    render(<Dashboard />);
-
-    // Switch to 1800
-    const toggle1800 = screen.getByText('1800');
-    fireEvent.click(toggle1800);
-    expect(screen.getByText('1050 / 1800 kcal')).toBeInTheDocument();
-
-    // Switch back to 1500
-    const toggle1500 = screen.getByText('1500');
-    fireEvent.click(toggle1500);
-    expect(screen.getByText('890 / 1500 kcal')).toBeInTheDocument();
+  // Test 3: Fixture plan renders today's meals
+  it('renders today\'s meals when plan data is available', async () => {
+    const todayWeekday = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][
+      new Date().getDay()
+    ];
+    const mockPlanData: PlanData = {
+      [todayWeekday]: {
+        breakfast: { recipe_id: 'recipe-1', meal_type: 'day-of' },
+        lunch: { recipe_id: 'recipe-2', meal_type: 'batch-sun' },
+        dinner: { meal_type: 'dine-out' },
+      },
+    };
+    const mockPlan: PlanOut = {
+      id: 'plan-1',
+      household_id: 'household-1',
+      week_start: '2025-05-04',
+      status: 'approved',
+      plan_data: mockPlanData,
+      created_at: '2025-05-04T00:00:00Z',
+      updated_at: '2025-05-04T00:00:00Z',
+    };
+    (getCurrentPlan as vi.Mock).mockResolvedValueOnce(mockPlan);
+    
+    renderWithQueryClient(<Dashboard />);
+    
+    await waitFor(() => {
+      // Should show today's meals
+      expect(screen.getByText(/recipe-1/i)).toBeInTheDocument();
+      expect(screen.getByText(/recipe-2/i)).toBeInTheDocument();
+      expect(screen.getByText(/dine out/i)).toBeInTheDocument();
+    });
   });
 });
