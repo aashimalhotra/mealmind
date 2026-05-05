@@ -1,4 +1,5 @@
 import json
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -6,6 +7,9 @@ from typing import List, Optional
 from app.db.models import Recipe
 from app.db.session import get_db
 from app.schemas.recipe import RecipeIn, RecipeOut, RecipeUpdate
+from app.services import nutrition
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -89,8 +93,8 @@ def get_recipe(recipe_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=RecipeOut, status_code=201)
-def create_recipe(recipe_in: RecipeIn, db: Session = Depends(get_db)):
-    """Create a new recipe. Macros are left null until Sprint 3 nutrition resolution."""
+async def create_recipe(recipe_in: RecipeIn, db: Session = Depends(get_db)):
+    """Create a new recipe and auto-resolve nutrition."""
     # Convert list fields to JSON strings for storage
     ingredients_json = json.dumps([ing.model_dump() for ing in recipe_in.ingredients])
     prep_steps_json = json.dumps(recipe_in.prep_steps)
@@ -115,7 +119,7 @@ def create_recipe(recipe_in: RecipeIn, db: Session = Depends(get_db)):
         is_batch_prep=recipe_in.is_batch_prep,
         is_favorite=recipe_in.is_favorite,
         is_disliked=recipe_in.is_disliked,
-        # Macros intentionally left null per task requirements
+        # Macros intentionally left null, will be filled by nutrition resolution
         calories_per_serving=None,
         protein_g=None,
         carbs_g=None,
@@ -125,19 +129,31 @@ def create_recipe(recipe_in: RecipeIn, db: Session = Depends(get_db)):
     db.add(db_recipe)
     db.commit()
     db.refresh(db_recipe)
+    
+    # Auto-resolve nutrition after initial write
+    try:
+        await nutrition.resolve_recipe_nutrition(db_recipe, db)
+        db.refresh(db_recipe)
+        logger.info(f"Resolved nutrition for new recipe {db_recipe.id}")
+    except Exception as e:
+        logger.error(f"Failed to resolve nutrition for recipe {db_recipe.id}: {e}")
+
     return _parse_recipe_to_out(db_recipe)
 
 
 @router.patch("/{recipe_id}", response_model=RecipeOut)
-def update_recipe(
+async def update_recipe(
     recipe_id: str,
     recipe_update: RecipeUpdate,
     db: Session = Depends(get_db)
 ):
-    """Partial update of a recipe by ID, 404 if not found."""
+    """Partial update of a recipe by ID, 404 if not found. Auto-resolves nutrition if ingredients changed."""
     db_recipe = db.query(Recipe).filter(Recipe.id == recipe_id).first()
     if not db_recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
+
+    # Track if ingredients were updated
+    ingredients_updated = False
 
     # Update only provided fields
     if recipe_update.display_name is not None:
@@ -150,6 +166,7 @@ def update_recipe(
         db_recipe.cuisine = recipe_update.cuisine
     if recipe_update.ingredients is not None:
         db_recipe.ingredients = json.dumps([ing.model_dump() for ing in recipe_update.ingredients])
+        ingredients_updated = True
     if recipe_update.prep_steps is not None:
         db_recipe.prep_steps = json.dumps(recipe_update.prep_steps)
     if recipe_update.serving_instructions is not None:
@@ -175,4 +192,14 @@ def update_recipe(
 
     db.commit()
     db.refresh(db_recipe)
+    
+    # Only resolve nutrition if ingredients were changed
+    if ingredients_updated:
+        try:
+            await nutrition.resolve_recipe_nutrition(db_recipe, db)
+            db.refresh(db_recipe)
+            logger.info(f"Resolved nutrition for updated recipe {recipe_id} (ingredients changed)")
+        except Exception as e:
+            logger.error(f"Failed to resolve nutrition for recipe {recipe_id}: {e}")
+
     return _parse_recipe_to_out(db_recipe)

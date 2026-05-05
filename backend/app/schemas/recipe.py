@@ -14,6 +14,7 @@ class Ingredient(BaseModel):
     carbs_per_100g: Optional[float] = None
     fat_per_100g: Optional[float] = None
     nutrition_source: Literal["usda", "llm_estimate"]
+    note: Optional[str] = None
 
 
 class RecipeIn(BaseModel):

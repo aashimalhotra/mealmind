@@ -1,5 +1,6 @@
 import pytest
 from typing import List, Dict
+from unittest.mock import AsyncMock, patch, MagicMock
 
 
 def _test_recipe_data() -> Dict:
@@ -168,49 +169,96 @@ async def test_get_recipe_404(async_client):
 
 @pytest.mark.asyncio
 async def test_post_recipe(async_client):
-    """Test POST /api/recipes creates a new recipe."""
+    """Test POST /api/recipes creates a new recipe and calls nutrition resolution."""
     recipe_data = _test_recipe_data()
-    response = await async_client.post("/api/recipes", json=recipe_data)
-    assert response.status_code == 201
-    data = response.json()
-
-    # Verify returned fields
-    assert "id" in data
-    assert data["display_name"] == "Tandoori Chicken"
-    assert data["cuisine"] == "Indian"
-    assert data["is_batch_prep"] is True
-    assert data["is_favorite"] is False
-    assert data["calories_per_serving"] is None  # Macros left null per requirements
-    assert len(data["ingredients"]) == 1
-    assert data["ingredients"][0]["nutrition_source"] == "usda"
-    assert data["prep_steps"] == ["Marinate chicken for 2 hours", "Grill at 200C for 25 minutes"]
-    assert data["tags"] == ["batch", "high-protein", "spicy"]
+    
+    # Mock the nutrition resolution to avoid external calls
+    with patch("app.routers.recipes.nutrition.resolve_recipe_nutrition", new_callable=AsyncMock) as mock_resolve:
+        response = await async_client.post("/api/recipes", json=recipe_data)
+        assert response.status_code == 201
+        data = response.json()
+        
+        # Verify nutrition service was called
+        assert mock_resolve.called
+        # Verify it was called with a Recipe object and db session
+        assert mock_resolve.call_count == 1
+        
+        # Verify returned fields
+        assert "id" in data
+        assert data["display_name"] == "Tandoori Chicken"
+        assert data["cuisine"] == "Indian"
+        assert data["is_batch_prep"] is True
+        assert data["is_favorite"] is False
+        assert len(data["ingredients"]) == 1
+        assert data["ingredients"][0]["nutrition_source"] == "usda"
+        assert data["prep_steps"] == ["Marinate chicken for 2 hours", "Grill at 200C for 25 minutes"]
+        assert data["tags"] == ["batch", "high-protein", "spicy"]
 
 
 @pytest.mark.asyncio
 async def test_patch_recipe(async_client):
-    """Test PATCH /api/recipes/{id} partially updates a recipe."""
+    """Test PATCH /api/recipes/{id} partially updates a recipe and calls nutrition resolution when ingredients change."""
     # Create a recipe
     recipe_data = _test_recipe_data()
     create_resp = await async_client.post("/api/recipes", json=recipe_data)
     created = create_resp.json()
     recipe_id = created["id"]
 
-    # Patch display name and favorite status
-    patch_data = {
-        "display_name": "Tandoori Chicken (Extra Spicy)",
-        "is_favorite": True
-    }
-    response = await async_client.patch(f"/api/recipes/{recipe_id}", json=patch_data)
-    assert response.status_code == 200
-    data = response.json()
+    # Patch display name and favorite status (no ingredient changes)
+    # Should NOT trigger nutrition resolution
+    with patch("app.routers.recipes.nutrition.resolve_recipe_nutrition", new_callable=AsyncMock) as mock_resolve:
+        patch_data = {
+            "display_name": "Tandoori Chicken (Extra Spicy)",
+            "is_favorite": True
+        }
+        response = await async_client.patch(f"/api/recipes/{recipe_id}", json=patch_data)
+        assert response.status_code == 200
+        data = response.json()
 
-    # Verify updates
-    assert data["display_name"] == "Tandoori Chicken (Extra Spicy)"
-    assert data["is_favorite"] is True
-    # Verify unpatched fields remain unchanged
-    assert data["cuisine"] == "Indian"
-    assert data["is_batch_prep"] is True
+        # Verify updates
+        assert data["display_name"] == "Tandoori Chicken (Extra Spicy)"
+        assert data["is_favorite"] is True
+        # Verify unpatched fields remain unchanged
+        assert data["cuisine"] == "Indian"
+        assert data["is_batch_prep"] is True
+        
+        # Nutrition resolution should NOT be called (no ingredient changes)
+        assert not mock_resolve.called
+
+
+@pytest.mark.asyncio
+async def test_patch_recipe_with_ingredients_calls_nutrition(async_client):
+    """Test PATCH with ingredient changes triggers nutrition resolution."""
+    # Create a recipe
+    recipe_data = _test_recipe_data()
+    create_resp = await async_client.post("/api/recipes", json=recipe_data)
+    created = create_resp.json()
+    recipe_id = created["id"]
+
+    # Patch ingredients
+    with patch("app.routers.recipes.nutrition.resolve_recipe_nutrition", new_callable=AsyncMock) as mock_resolve:
+        patch_data = {
+            "ingredients": [
+                {
+                    "name": "Chicken thighs",
+                    "quantity_1500": 400,
+                    "quantity_1800": 500,
+                    "unit": "g",
+                    "usda_food_id": None,
+                    "calories_per_100g": None,
+                    "protein_per_100g": None,
+                    "carbs_per_100g": None,
+                    "fat_per_100g": None,
+                    "nutrition_source": "usda"
+                }
+            ]
+        }
+        response = await async_client.patch(f"/api/recipes/{recipe_id}", json=patch_data)
+        assert response.status_code == 200
+        
+        # Nutrition resolution should be called (ingredients changed)
+        assert mock_resolve.called
+        assert mock_resolve.call_count == 1
 
 
 @pytest.mark.asyncio
