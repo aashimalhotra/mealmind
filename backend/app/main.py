@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
+from app.routers.profile import router as profile_router
 
 app = FastAPI(title="MealMind API")
 
@@ -11,6 +12,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(profile_router, prefix="/api/profile", tags=["profile"])
 
 
 @app.get("/api/health")

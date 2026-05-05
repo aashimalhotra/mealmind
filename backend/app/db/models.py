@@ -35,12 +35,16 @@ class User(Base):
     carbs_pct: Mapped[float] = mapped_column(REAL, default=0.30)
     fat_pct: Mapped[float] = mapped_column(REAL, default=0.40)
     veggie_target: Mapped[int] = mapped_column(Integer, default=5)
+    household_id: Mapped[str] = mapped_column(
+        Text, ForeignKey("household.id"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
     )
 
     # Relationships
+    household: Mapped[Optional["Household"]] = relationship(back_populates="members")
     recipes: Mapped[list["Recipe"]] = relationship(back_populates="creator")
     chat_messages: Mapped[list["ChatHistory"]] = relationship(back_populates="user")
 
@@ -56,8 +60,8 @@ class Household(Base):
         default=lambda: secrets.token_hex(4),
     )
     name: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    prep_days: Mapped[Optional[dict]] = mapped_column(Text, nullable=True, default='["sunday","wednesday"]')
-    dineout_days: Mapped[Optional[dict]] = mapped_column(Text, nullable=True, default='["friday_dinner","sunday_dinner"]')
+    prep_days: Mapped[Optional[list]] = mapped_column(Text, nullable=True, default='["sunday","wednesday"]')
+    dineout_days: Mapped[Optional[list]] = mapped_column(Text, nullable=True, default='["friday_dinner","sunday_dinner"]')
     cuisine_pref: Mapped[Optional[str]] = mapped_column(Text, default="indian-inspired")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -65,6 +69,7 @@ class Household(Base):
     )
 
     # Relationships
+    members: Mapped[list["User"]] = relationship(back_populates="household")
     meal_plans: Mapped[list["MealPlan"]] = relationship(back_populates="household")
     prep_sessions: Mapped[list["PrepSession"]] = relationship(back_populates="household")
     chat_history: Mapped[list["ChatHistory"]] = relationship(back_populates="household")
