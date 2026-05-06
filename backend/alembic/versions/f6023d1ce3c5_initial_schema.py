@@ -38,8 +38,10 @@ def upgrade() -> None:
     sa.Column('carbs_pct', sa.REAL(), nullable=False),
     sa.Column('fat_pct', sa.REAL(), nullable=False),
     sa.Column('veggie_target', sa.Integer(), nullable=False),
+    sa.Column('household_id', sa.Text(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.ForeignKeyConstraint(['household_id'], ['household.id'], )
     )
     op.create_table('chat_history',
     sa.Column('id', sa.Text(), nullable=False),
