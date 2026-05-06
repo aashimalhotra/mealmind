@@ -12,7 +12,7 @@ help:
 	@echo "  seed          - cd backend && python scripts/seed.py"
 
 dev:
-	docker compose up --build
+	docker compose up --build -d
 
 down:
 	docker compose down
@@ -27,10 +27,10 @@ lint:
 	@echo "linting..."
 
 migrate:
-	cd backend && alembic upgrade head
+	cd backend && uv run alembic upgrade head
 
 seed:
-	cd backend && python scripts/seed.py
+	cd backend && uv run scripts/seed.py
 
 frontend-e2e:
 	cd frontend && pnpm exec playwright test
