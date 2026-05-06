@@ -166,27 +166,17 @@ class PrepSession(Base):
     id: Mapped[str] = mapped_column(
         Text,
         primary_key=True,
-        default=lambda: secrets.token_hex(4),
     )
-    meal_plan_id: Mapped[str] = mapped_column(
-        Text, ForeignKey("meal_plans.id"), nullable=False
-    )
-    household_id: Mapped[str] = mapped_column(
-        Text, ForeignKey("household.id"), nullable=False
+    plan_id: Mapped[str] = mapped_column(
+        Text, nullable=False
     )
     day: Mapped[str] = mapped_column(Text, nullable=False)
-    recipe_ids: Mapped[dict] = mapped_column(Text, nullable=False)
-    steps: Mapped[dict] = mapped_column(Text, nullable=False)
-    est_time_min: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    status: Mapped[str] = mapped_column(Text, default="pending")
+    status: Mapped[str] = mapped_column(Text, default="in_progress")
+    steps_json: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        server_default=func.now(),
+        default=datetime.utcnow,
     )
-
-    # Relationships
-    meal_plan: Mapped["MealPlan"] = relationship(back_populates="prep_sessions")
-    household: Mapped["Household"] = relationship(back_populates="prep_sessions")
 
 
 class ChatHistory(Base):

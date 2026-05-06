@@ -7,6 +7,7 @@ import PrepDayCard from '../components/PrepDayCard';
 import AIInsightCard from '../components/AIInsightCard';
 import PersonToggle from '../components/PersonToggle';
 import { useCurrentPlan } from '../hooks/useCurrentPlan';
+import { useTodaysPrepSession } from '../hooks/useTodaysPrepSession';
 import { generatePlan } from '../api/plans';
 
 // Helper to get today's weekday (lowercase, e.g., 'monday')
@@ -44,6 +45,9 @@ const Dashboard: React.FC = () => {
   
   const { data: plan, isLoading, isError, error, refetch } = useCurrentPlan();
   const todayWeekday = getTodayWeekday();
+  
+  // Hook for today's prep session
+  const { prepSession, isPrepDay, isLoading: prepLoading, startPrep } = useTodaysPrepSession(plan?.id);
 
   // Handle plan generation SSE
   const handleGeneratePlan = useCallback(() => {
