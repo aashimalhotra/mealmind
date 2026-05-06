@@ -83,3 +83,8 @@ class RecipeUpdate(BaseModel):
     is_batch_prep: Optional[bool] = None
     is_favorite: Optional[bool] = None
     is_disliked: Optional[bool] = None
+
+
+class RecipeDetailOut(RecipeOut):
+    """Expanded output schema for recipe detail, includes prep_session_id."""
+    prep_session_id: Optional[str] = None

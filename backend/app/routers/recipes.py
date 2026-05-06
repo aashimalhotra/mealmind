@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from app.db.models import Recipe
+from app.db.models import Recipe, PrepSession
 from app.db.session import get_db
-from app.schemas.recipe import RecipeIn, RecipeOut, RecipeUpdate
+from app.schemas.recipe import RecipeIn, RecipeOut, RecipeUpdate, RecipeDetailOut
 from app.services import nutrition
 
 logger = logging.getLogger(__name__)
@@ -47,6 +47,34 @@ def _parse_recipe_to_out(recipe: Recipe) -> RecipeOut:
     )
 
 
+def _get_prep_session_id_for_recipe(recipe_id: str, db: Session) -> Optional[str]:
+    """Find the most recent active prep_session whose recipe_ids contains this recipe_id."""
+    # Query prep sessions ordered by most recent
+    prep_sessions = db.query(PrepSession).order_by(PrepSession.created_at.desc()).all()
+    
+    for session in prep_sessions:
+        if session.recipe_ids:
+            try:
+                recipe_ids = json.loads(session.recipe_ids)
+                if recipe_id in recipe_ids:
+                    return session.id
+            except (json.JSONDecodeError, TypeError):
+                logger.warning(f"Failed to parse recipe_ids for prep session {session.id}")
+    
+    return None
+
+
+def _parse_recipe_to_detail_out(recipe: Recipe, db: Session) -> RecipeDetailOut:
+    """Convert DB Recipe model to RecipeDetailOut with prep_session_id."""
+    recipe_out = _parse_recipe_to_out(recipe)
+    prep_session_id = _get_prep_session_id_for_recipe(recipe.id, db)
+    
+    return RecipeDetailOut(
+        **recipe_out.model_dump(),
+        prep_session_id=prep_session_id
+    )
+
+
 @router.get("", response_model=List[RecipeOut])
 def get_recipes(
     cuisine: Optional[str] = None,
@@ -83,13 +111,13 @@ def get_recipes(
     return [_parse_recipe_to_out(r) for r in recipes]
 
 
-@router.get("/{recipe_id}", response_model=RecipeOut)
+@router.get("/{recipe_id}", response_model=RecipeDetailOut)
 def get_recipe(recipe_id: str, db: Session = Depends(get_db)):
-    """Get recipe by ID, 404 if not found."""
+    """Get recipe by ID, 404 if not found. Returns expanded detail with prep_session_id."""
     recipe = db.query(Recipe).filter(Recipe.id == recipe_id).first()
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
-    return _parse_recipe_to_out(recipe)
+    return _parse_recipe_to_detail_out(recipe, db)
 
 
 @router.post("", response_model=RecipeOut, status_code=201)

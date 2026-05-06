@@ -1,4 +1,5 @@
 import pytest
+import json
 from typing import List, Dict
 from unittest.mock import AsyncMock, patch, MagicMock
 
@@ -268,3 +269,59 @@ async def test_patch_recipe_404(async_client):
     response = await async_client.patch("/api/recipes/nonexistent-id", json=patch_data)
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_get_recipe_with_prep_session_id(async_client, test_db_session):
+    """Test GET /api/recipes/{id} returns prep_session_id when recipe is in a prep session."""
+    from app.db.models import Recipe, PrepSession
+    from datetime import datetime
+    
+    # Create a recipe via API
+    recipe_data = _test_recipe_data()
+    create_resp = await async_client.post("/api/recipes", json=recipe_data)
+    assert create_resp.status_code == 201
+    created = create_resp.json()
+    recipe_id = created["id"]
+    
+    # Create a PrepSession directly in the test DB with this recipe_id
+    prep_session = PrepSession(
+        meal_plan_id="test_plan_123",  # Dummy ID
+        household_id="test_household_123",  # Dummy ID
+        day="sunday",
+        recipe_ids=json.dumps([recipe_id]),
+        steps=json.dumps([]),
+        status="active"
+    )
+    test_db_session.add(prep_session)
+    test_db_session.commit()
+    test_db_session.refresh(prep_session)
+    
+    # Fetch recipe by ID
+    response = await async_client.get(f"/api/recipes/{recipe_id}")
+    assert response.status_code == 200
+    data = response.json()
+    
+    # Verify prep_session_id is returned and matches
+    assert "prep_session_id" in data
+    assert data["prep_session_id"] == prep_session.id
+
+
+@pytest.mark.asyncio
+async def test_get_recipe_without_prep_session(async_client):
+    """Test GET /api/recipes/{id} returns prep_session_id=None when no prep session contains recipe."""
+    # Create a recipe
+    recipe_data = _test_recipe_data()
+    create_resp = await async_client.post("/api/recipes", json=recipe_data)
+    assert create_resp.status_code == 201
+    created = create_resp.json()
+    recipe_id = created["id"]
+    
+    # Fetch recipe by ID (no prep session exists)
+    response = await async_client.get(f"/api/recipes/{recipe_id}")
+    assert response.status_code == 200
+    data = response.json()
+    
+    # Verify prep_session_id is None
+    assert "prep_session_id" in data
+    assert data["prep_session_id"] is None
