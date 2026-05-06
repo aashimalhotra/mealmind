@@ -27,7 +27,7 @@ lint:
 	@echo "linting..."
 
 migrate:
-	cd backend && uv run alembic upgrade head
+	cd backend && DATABASE_URL="sqlite:///./data/mealmind.db" uv run alembic upgrade head
 
 seed:
 	cd backend && uv run scripts/seed.py
