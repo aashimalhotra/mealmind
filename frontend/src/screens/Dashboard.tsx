@@ -72,6 +72,13 @@ const Dashboard: React.FC = () => {
     };
   }, [navigate]);
 
+  // Handle meal card click - navigate to recipe detail
+  const handleMealClick = useCallback((recipeId: string) => {
+    if (recipeId) {
+      navigate(`/recipe/${recipeId}`);
+    }
+  }, [navigate]);
+
   // Derive today's data from plan when available
   const todayMeals = React.useMemo(() => {
     if (!plan?.plan_data) return [];
@@ -97,16 +104,17 @@ const Dashboard: React.FC = () => {
           macros: { kcal: 0, p: 0, c: 0, f: 0 },
           dimmed: true,
           dineOut: true,
+          recipe_id: null,
         });
       } else if (meal.recipe_id) {
-        // TODO: Fetch recipe details to get title and macros (Phase 2)
-        // For now, use placeholder until recipe API is integrated
         meals.push({
           slot,
           time: slotTimes[slot],
           title: `Recipe ${meal.recipe_id.slice(0, 8)}…`,
           macros: { kcal: 0, p: 0, c: 0, f: 0 }, // Placeholder
           dimmed: false,
+          dineOut: false,
+          recipe_id: meal.recipe_id,
         });
       }
     }
@@ -283,6 +291,7 @@ const Dashboard: React.FC = () => {
                 macros={meal.macros}
                 dimmed={meal.dimmed}
                 dineOut={meal.dineOut}
+                onClick={meal.recipe_id ? () => handleMealClick(meal.recipe_id) : undefined}
               />
             ))
           ) : (
