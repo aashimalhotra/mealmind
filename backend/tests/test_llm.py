@@ -131,5 +131,63 @@ async def test_get_llm_returns_configured_client():
     assert isinstance(client, LLMClient)
     assert client.base_url == "http://localhost:4000"  # default from settings
     assert client.default_model == "mealmind-default"
+    assert client.api_key == "sk-mealmind-local-dev-only"
     
     await client.close()
+
+
+@pytest.mark.asyncio
+async def test_chat_sends_auth_header_when_api_key_set(httpx_mock):
+    """Test that Authorization header is sent when api_key is provided"""
+    httpx_mock.add_response(
+        json={
+            "choices": [
+                {
+                    "message": {
+                        "content": "Hello!"
+                    }
+                }
+            ]
+        }
+    )
+
+    client = LLMClient(base_url="http://localhost:4000", api_key="test-key-123")
+    messages = [{"role": "user", "content": "Hello"}]
+    
+    result = await client.chat(messages)
+    
+    assert result == "Hello!"
+    
+    # Verify the Authorization header was sent
+    request = httpx_mock.get_request()
+    headers = dict(request.headers)
+    assert "authorization" in headers
+    assert headers["authorization"] == "Bearer test-key-123"
+
+
+@pytest.mark.asyncio
+async def test_chat_no_auth_header_when_api_key_not_set(httpx_mock):
+    """Test that no Authorization header is sent when api_key is not provided"""
+    httpx_mock.add_response(
+        json={
+            "choices": [
+                {
+                    "message": {
+                        "content": "Hello!"
+                    }
+                }
+            ]
+        }
+    )
+
+    client = LLMClient(base_url="http://localhost:4000")
+    messages = [{"role": "user", "content": "Hello"}]
+    
+    result = await client.chat(messages)
+    
+    assert result == "Hello!"
+    
+    # Verify no Authorization header was sent
+    request = httpx_mock.get_request()
+    headers = dict(request.headers)
+    assert "authorization" not in headers

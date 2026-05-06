@@ -2,12 +2,12 @@
 model_list:
   - model_name: mealmind-default
     litellm_params:
-      model: best
+      model: openai/best
       api_base: os.environ/REMOTE_LITELLM_API_BASE
       api_key: os.environ/REMOTE_LITELLM_API_KEY
   - model_name: mealmind-json
     litellm_params:
-      model: best
+      model: openai/best
       api_base: os.environ/REMOTE_LITELLM_API_BASE
       api_key: os.environ/REMOTE_LITELLM_API_KEY
       response_format: { "type": "json_object" }

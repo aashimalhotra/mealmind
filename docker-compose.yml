@@ -7,6 +7,7 @@ services:
       - ./backend/data:/app/data
     environment:
       LITELLM_PROXY_URL: http://litellm:4000
+      LITELLM_PROXY_API_KEY: sk-mealmind-local-dev-only
       DATABASE_URL: sqlite:////app/data/mealmind.db
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]

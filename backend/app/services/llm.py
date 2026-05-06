@@ -10,10 +10,14 @@ class LLMResponseError(Exception):
 
 
 class LLMClient:
-    def __init__(self, base_url: str, default_model: str = "mealmind-default"):
+    def __init__(self, base_url: str, default_model: str = "mealmind-default", api_key: str = ""):
         self.base_url = base_url.rstrip("/")
         self.default_model = default_model
+        self.api_key = api_key
         self._client = httpx.AsyncClient(timeout=30.0)
+        self._headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            self._headers["Authorization"] = f"Bearer {self.api_key}"
 
     async def close(self) -> None:
         """Close the underlying HTTP client"""
@@ -59,7 +63,7 @@ class LLMClient:
 
     async def _non_stream_chat(self, url: str, payload: dict, json_mode: bool):
         """Handle non-streaming chat request"""
-        response = await self._client.post(url, json=payload)
+        response = await self._client.post(url, json=payload, headers=self._headers)
         response.raise_for_status()
         
         data = response.json()
@@ -74,7 +78,7 @@ class LLMClient:
 
     async def _stream_chat(self, url: str, payload: dict) -> AsyncGenerator[str, None]:
         """Handle streaming chat request, yield content deltas"""
-        async with self._client.stream("POST", url, json=payload) as response:
+        async with self._client.stream("POST", url, json=payload, headers=self._headers) as response:
             response.raise_for_status()
             async for line in response.aiter_lines():
                 if not line.startswith("data: "):
@@ -96,4 +100,7 @@ class LLMClient:
 
 def get_llm() -> LLMClient:
     """Create and return configured LLM client using app settings"""
-    return LLMClient(base_url=settings.LITELLM_PROXY_URL)
+    return LLMClient(
+        base_url=settings.LITELLM_PROXY_URL,
+        api_key=settings.LITELLM_PROXY_API_KEY
+    )
