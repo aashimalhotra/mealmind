@@ -17,7 +17,7 @@ function getDotColor(name: string) {
 
 function IngredientList({ items, quantityField }: IngredientListProps) {
   return (
-    <div className="bg-surface rounded-card-lg border border-border overflow-hidden">
+    <div data-testid="ingredient-list" className="bg-surface rounded-card-lg border border-border overflow-hidden">
       {items.map((ingredient, index) => (
         <div
           key={index}
