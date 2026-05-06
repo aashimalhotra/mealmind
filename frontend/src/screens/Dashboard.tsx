@@ -323,6 +323,26 @@ const Dashboard: React.FC = () => {
           durationLabel="~1.5 hrs · covers Thu–Sat"
         />
         <AIInsightCard body="You're low on iron this week. Consider adding spinach to tomorrow's lunch." />
+        {/* Grocery list entry point - visible when current plan exists */}
+        <div
+          className="bg-surface rounded-card-lg py-2xl px-3xl mb-lg flex items-center justify-between cursor-pointer hover:opacity-90 transition-opacity"
+          onClick={() => navigate(`/grocery/${plan.id}`)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && navigate(`/grocery/${plan.id}`)}
+        >
+          <div className="flex items-center gap-3">
+            {/* Basket icon */}
+            <svg width="20" height="20" viewBox="0 0 24 24" className="text-text-secondary" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+            </svg>
+            <span className="text-body-lg font-medium text-text-primary">Grocery list</span>
+          </div>
+          {/* Chevron right */}
+          <svg width="20" height="20" viewBox="0 0 20 20" className="text-text-tertiary">
+            <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+          </svg>
+        </div>
       </div>
       <div className="h-[80px]" />
     </div>

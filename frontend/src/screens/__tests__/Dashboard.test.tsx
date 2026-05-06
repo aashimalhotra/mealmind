@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import Dashboard from '../Dashboard';
 import { getCurrentPlan, generatePlan } from '../../api/plans';
 import type { PlanOut, PlanData } from '../../api/plans';
@@ -12,6 +12,15 @@ vi.mock('../../api/plans', () => ({
   generatePlan: vi.fn(),
   approvePlan: vi.fn(),
 }));
+
+// Mock react-router-dom's useNavigate
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: vi.fn(),
+  };
+});
 
 // Mock EventSource for SSE tests
 class MockEventSource {
@@ -112,6 +121,47 @@ describe('Dashboard', () => {
     const dineOutSection = screen.getByText(/dining out tonight/i).closest('div');
     expect(dineOutSection).toBeInTheDocument();
     // Check that the dine-out section doesn't contain macro information
-    expect(dineOutSection?.textContent).not.toMatch(/\d+ kcal/);
+    expect(dineOutSection?.textContent).not.toMatch(/\\d+ kcal/);
+  });
+
+  // Test 4: Grocery list entry point navigates to correct route
+  it('navigates to grocery list when row is clicked with mock plan loaded', async () => {
+    const todayWeekday = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][
+      new Date().getDay()
+    ];
+    const mockPlan: PlanOut = {
+      id: 'test-plan-123',
+      household_id: 'household-1',
+      week_start: '2025-05-04',
+      status: 'approved',
+      plan_data: {
+        [todayWeekday]: {
+          breakfast: { recipe_id: 'recipe-1', meal_type: 'day-of' },
+        },
+      },
+      created_at: '2025-05-04T00:00:00Z',
+      updated_at: '2025-05-04T00:00:00Z',
+    };
+    (getCurrentPlan as vi.Mock).mockResolvedValueOnce(mockPlan);
+
+    // Get the mock useNavigate function
+    const mockNavigate = vi.fn();
+    const useNavigateMock = vi.mocked(useNavigate);
+    useNavigateMock.mockReturnValueOnce(mockNavigate);
+
+    renderWithQueryClient(<Dashboard />);
+
+    // Wait for dashboard to load with plan
+    await waitFor(() => {
+      expect(screen.getByText(/grocery list/i)).toBeInTheDocument();
+    });
+
+    // Find and click the grocery list row
+    const groceryRow = screen.getByText('Grocery list').closest('div[role="button"]');
+    expect(groceryRow).toBeInTheDocument();
+    fireEvent.click(groceryRow!);
+
+    // Assert navigation to correct grocery route
+    expect(mockNavigate).toHaveBeenCalledWith('/grocery/test-plan-123');
   });
 });
