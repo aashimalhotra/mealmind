@@ -4,12 +4,12 @@ services:
     ports:
       - "8400:8000"
     volumes:
-      - ./data:/app/data
+      - ./backend/data:/app/data
     environment:
       LITELLM_PROXY_URL: http://litellm:4000
       DATABASE_URL: sqlite:////app/data/mealmind.db
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -23,9 +23,9 @@ services:
         condition: service_healthy
 
   litellm:
-    image: ghcr.io/berriai/litellm:latest
+    image: ghcr.io/berriai/litellm:main-stable
     ports:
       - "4000:4000"
     volumes:
       - ./litellm-config.yaml:/app/config.yaml
-    command: ["litellm", "--config", "/app/config.yaml"]
+    command: ["--config", "/app/config.yaml"]
