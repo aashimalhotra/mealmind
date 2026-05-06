@@ -53,23 +53,44 @@ const Dashboard: React.FC = () => {
   const handleGeneratePlan = useCallback(() => {
     setGenStage('Starting…');
     setGenError(null);
+    console.log('[Dashboard] Starting plan generation');
     const eventSource = generatePlan();
     
     // Listen for progress stages (default message events)
     eventSource.onmessage = (event) => {
+      console.log('[Dashboard] onmessage received:', event.data);
       const stage = event.data;
       setGenStage(stage);
     };
 
     // Listen for 'done' event with plan_id
     eventSource.addEventListener('done', (event) => {
+      console.log('[Dashboard] done event received:', event.data);
       const planId = event.data;
       eventSource.close();
       setGenStage(null);
       navigate(`/plan/review/${planId}`);
     });
 
-    eventSource.onerror = () => {
+    // Listen for 'error' event from backend
+    eventSource.addEventListener('error', (event) => {
+      console.log('[Dashboard] error event received:', event.data);
+      let errorMessage = 'Failed to generate plan. Please try again.';
+      try {
+        const data = JSON.parse(event.data);
+        if (data.error) {
+          errorMessage = data.error;
+        }
+      } catch {
+        // Invalid JSON, use default message
+      }
+      eventSource.close();
+      setGenError(errorMessage);
+      setGenStage(null);
+    });
+
+    eventSource.onerror = (error) => {
+      console.log('[Dashboard] onerror triggered:', error);
       eventSource.close();
       setGenError('Failed to generate plan. Please try again.');
       setGenStage(null);

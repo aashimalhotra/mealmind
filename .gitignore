@@ -7,3 +7,5 @@ data/*.db-journal
 
 node_modules/
 .vscode/
+
+.env
