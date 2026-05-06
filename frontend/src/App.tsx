@@ -4,6 +4,7 @@ import RecipesTab from './screens/RecipesTab';
 import Profile from './screens/Profile';
 import PlanReview from './screens/PlanReview';
 import RecipeDetail from './screens/RecipeDetail';
+import PrepGuide from './screens/PrepGuide';
 import BottomNav from './components/BottomNav';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/plan/review/:id" element={<PlanReview />} />
         <Route path="/recipe/:id" element={<RecipeDetail />} />
+        <Route path="/prep/:sessionId" element={<PrepGuide />} />
       </Routes>
       <BottomNav />
     </div>

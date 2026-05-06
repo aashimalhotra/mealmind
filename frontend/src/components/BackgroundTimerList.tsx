@@ -1,81 +1,59 @@
-import { useEffect, useState } from 'react';
-import { useBackgroundTimers, BackgroundTimer } from '../hooks/useBackgroundTimers';
+import React from 'react';
 
-const formatTime = (totalSeconds: number): string => {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = Math.floor(totalSeconds % 60);
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-};
+export interface BackgroundTimer {
+  id: string;
+  step_title: string;
+  dish_color?: string;
+  remaining_seconds: number;
+  total_seconds: number;
+  started_at_step: number;
+}
 
-const BackgroundTimerList = () => {
-  const { timers, removeTimer, getTimersWithRemaining } = useBackgroundTimers();
-  const [currentTime, setCurrentTime] = useState(() => Date.now());
+interface BackgroundTimerListProps {
+  timers: BackgroundTimer[];
+}
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 1000);
+const BackgroundTimerList: React.FC<BackgroundTimerListProps> = ({ timers }) => {
+  if (timers.length === 0) return null;
 
-    return () => clearInterval(interval);
-  }, []);
-
-  const timersWithRemaining = getTimersWithRemaining(currentTime);
-
-  if (timersWithRemaining.length === 0) return null;
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 
   return (
-    <div className="mb-3">
-      <p className="text-sm font-medium text-[#3D2E1F] mb-2 flex items-center gap-1.5">
-        <svg width="14" height="14" viewBox="0 0 14 14">
-          <circle cx="7" cy="7" r="5.5" stroke="#C49B28" strokeWidth="1" fill="none" />
-          <path d="M7 4v3.5l2.5 1.5" stroke="#C49B28" strokeWidth="1" fill="none" strokeLinecap="round" />
+    <div className="mt-4">
+      <p className="text-sm font-medium text-text-primary mb-2 flex items-center gap-2">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="7" cy="7" r="5.5" stroke="#C49B28" strokeWidth="1"/>
+          <path d="M7 4v3.5l2.5 1.5" stroke="#C49B28" strokeWidth="1" strokeLinecap="round"/>
         </svg>
         Running in background
       </p>
       <div className="space-y-2">
-        {timersWithRemaining.map((timer) => {
-          const isComplete = timer.remainingSec <= 0;
-          const totalMinutes = Math.floor(timer.durationSec / 60);
-          const totalSeconds = timer.durationSec % 60;
-
-          return (
-            <div
-              key={timer.id}
-              className="bg-white rounded-xl p-3 border border-[#E8DDD0] flex justify-between items-center cursor-pointer"
-              onClick={() => isComplete && removeTimer(timer.id)}
-            >
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: timer.recipeColor }}
-                />
-                <div>
-                  <p className="text-sm font-medium text-[#3D2E1F]">
-                    {isComplete ? 'Done — tap to dismiss' : timer.label}
-                  </p>
-                  {!isComplete && (
-                    <p className="text-xs text-[#8C7B6B] mt-0.5">
-                      Started at step {timer.startedAtStep}
-                    </p>
-                  )}
-                </div>
+        {timers.map((timer) => (
+          <div key={timer.id} className="bg-white rounded-lg p-3 flex justify-between items-center border border-gray-100">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ backgroundColor: timer.dish_color || '#C49B28' }}
+              />
+              <div>
+                <p className="text-sm font-medium text-text-primary">{timer.step_title}</p>
+                <p className="text-xs text-text-secondary">Started at step {timer.started_at_step}</p>
               </div>
-              {!isComplete && (
-                <div className="text-right">
-                  <p
-                    className="text-base font-medium tabular-nums"
-                    style={{ color: timer.recipeColor }}
-                  >
-                    {formatTime(timer.remainingSec)}
-                  </p>
-                  <p className="text-[10px] text-[#8C7B6B]">
-                    of {totalMinutes}:{totalSeconds.toString().padStart(2, '0')}
-                  </p>
-                </div>
-              )}
             </div>
-          );
-        })}
+            <div className="text-right">
+              <p className="text-sm font-medium tabular-nums" style={{ color: timer.dish_color || '#C49B28' }}>
+                {formatTime(timer.remaining_seconds)}
+              </p>
+              <p className="text-xs text-text-secondary">
+                of {formatTime(timer.total_seconds)} min
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
