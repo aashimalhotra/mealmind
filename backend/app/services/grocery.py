@@ -26,22 +26,24 @@ def _get_plan_ingredients(db: Session, meal_plan: MealPlan) -> List[Dict[str, An
     
     Returns list of dicts with: name, total_quantity, unit, category (if available)
     """
-    # Parse plan_data to get recipe IDs
+    # Parse plan_data to get recipe IDs with their occurrence count
     plan_data = meal_plan.plan_data
     if isinstance(plan_data, str):
         plan_data = json.loads(plan_data)
     
-    # Collect all recipe IDs from the plan
-    recipe_ids = set()
+    # Collect recipe IDs with multiplicity (how many times each recipe is used)
+    recipe_occurrences = {}  # recipe_id -> count
     for day, meals in plan_data.items():
         for slot, meal in meals.items():
             if "recipe_id" in meal and meal["recipe_id"]:
-                recipe_ids.add(meal["recipe_id"])
+                rid = meal["recipe_id"]
+                recipe_occurrences[rid] = recipe_occurrences.get(rid, 0) + 1
     
-    if not recipe_ids:
+    if not recipe_occurrences:
         return []
     
-    # Fetch all recipes
+    # Fetch all unique recipes
+    recipe_ids = list(recipe_occurrences.keys())
     recipes = db.query(Recipe).filter(Recipe.id.in_(recipe_ids)).all()
     
     # Get household calorie target to determine quantity to use
@@ -49,9 +51,10 @@ def _get_plan_ingredients(db: Session, meal_plan: MealPlan) -> List[Dict[str, An
     calorie_target = household.members[0].calorie_target if household.members else 1500
     use_quantity_key = "quantity_1800" if calorie_target >= 1800 else "quantity_1500"
     
-    # Aggregate ingredients
+    # Aggregate ingredients considering recipe multiplicity
     ingredient_map = {}  # key: (name, unit)
     for recipe in recipes:
+        occurrences = recipe_occurrences.get(recipe.id, 1)
         ingredients = recipe.ingredients
         if isinstance(ingredients, str):
             ingredients = json.loads(ingredients)
@@ -63,6 +66,8 @@ def _get_plan_ingredients(db: Session, meal_plan: MealPlan) -> List[Dict[str, An
             qty = ing.get(use_quantity_key, ing.get("quantity_1500", 0))
             if qty is None:
                 qty = 0
+            # Multiply by number of occurrences
+            total_qty = float(qty) * occurrences
             
             key = (name, unit)
             if key not in ingredient_map:
@@ -72,7 +77,7 @@ def _get_plan_ingredients(db: Session, meal_plan: MealPlan) -> List[Dict[str, An
                     "total_quantity": 0.0,
                     "category": None  # Will be assigned by LLM
                 }
-            ingredient_map[key]["total_quantity"] += float(qty)
+            ingredient_map[key]["total_quantity"] += total_qty
     
     return list(ingredient_map.values())
 
@@ -129,21 +134,27 @@ async def generate_grocery_list(db: Session, plan_id: str, force_regenerate: boo
         ) from e
     
     # Parse LLM response
-    if not isinstance(llm_response, dict) or "items" not in llm_response:
+    if not isinstance(llm_response, dict) or "categories" not in llm_response:
         logger.error(f"Invalid LLM response for grocery consolidation: {llm_response}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Invalid response from grocery consolidation service"
         )
     
+    # Flatten items from all categories
+    all_items = []
+    for category in llm_response.get("categories", []):
+        for item in category.get("items", []):
+            item["category"] = category["name"]  # Add category name to each item
+            all_items.append(item)
+    
     # Add item IDs and checked status
-    items = llm_response["items"]
-    for item in items:
+    for item in all_items:
         item_id = _generate_item_id(item["ingredient_name"], item["category"])
         item["id"] = item_id
         item["checked"] = False
     
-    grocery_list = {"items": items}
+    grocery_list = {"items": all_items}
     
     # Persist to meal plan
     meal_plan.grocery_list = json.dumps(grocery_list)
