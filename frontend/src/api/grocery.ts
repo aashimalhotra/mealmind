@@ -64,3 +64,13 @@ export async function togglePantryStatus(
 ): Promise<GroceryItem> {
   return updateGroceryItem(itemId, { is_pantry_chip });
 }
+
+/**
+ * Toggle checked status of a grocery item (optimistic update compatible)
+ */
+export async function toggleGroceryItemChecked(
+  itemId: string,
+  checked: boolean
+): Promise<GroceryItem> {
+  return updateGroceryItem(itemId, { checked });
+}

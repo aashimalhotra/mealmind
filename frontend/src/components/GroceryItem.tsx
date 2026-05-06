@@ -1,4 +1,6 @@
 import React from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toggleGroceryItemChecked } from '../api/grocery';
 
 export interface GroceryItemData {
   id: string;
@@ -10,11 +12,71 @@ export interface GroceryItemData {
 
 interface GroceryItemProps {
   item: GroceryItemData;
-  onToggle: (id: string) => void;
+  queryKey?: string[];
 }
 
-const GroceryItem: React.FC<GroceryItemProps> = ({ item, onToggle }) => {
-  const handleToggle = () => onToggle(item.id);
+const GroceryItem: React.FC<GroceryItemProps> = ({ item, queryKey = ['groceryList'] }) => {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const newChecked = !item.checked;
+      return toggleGroceryItemChecked(item.id, newChecked);
+    },
+    onMutate: async () => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot previous value
+      const previousData = queryClient.getQueryData(queryKey);
+
+      // Optimistically update the cache
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old) return old;
+        const newChecked = !item.checked;
+        const updated = JSON.parse(JSON.stringify(old));
+
+        // Update item in categories
+        if (updated.categories) {
+          updated.categories.forEach((category: any) => {
+            const itemIndex = category.items?.findIndex((i: any) => i.id === item.id) ?? -1;
+            if (itemIndex !== -1) {
+              category.items[itemIndex].checked = newChecked;
+            }
+          });
+        }
+
+        // Update item in pantry_items
+        if (updated.pantry_items) {
+          const pantryIndex = updated.pantry_items.findIndex((i: any) => i.id === item.id);
+          if (pantryIndex !== -1) {
+            updated.pantry_items[pantryIndex].checked = newChecked;
+          }
+        }
+
+        return updated;
+      });
+
+      // Return context for rollback
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      // Roll back on error
+      if (context?.previousData) {
+        queryClient.setQueryData(queryKey, context.previousData);
+      }
+    },
+    onSettled: () => {
+      // Refetch after error or success to sync with server
+      queryClient.invalidateQueries({ queryKey });
+    },
+  });
+
+  const handleToggle = () => {
+    if (!mutation.isPending) {
+      mutation.mutate();
+    }
+  };
 
   const nameColor = item.checked ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)';
   const subtitleColor = item.checked ? 'var(--color-text-placeholder)' : 'var(--color-text-tertiary)';
@@ -22,13 +84,13 @@ const GroceryItem: React.FC<GroceryItemProps> = ({ item, onToggle }) => {
   const textDecoration = item.checked ? 'line-through' : 'none';
 
   return (
-    <div
-      className="flex items-center gap-[var(--space-xl)] px-[var(--space-3xl)] py-[var(--space-3xl)] border-b border-[var(--color-border-light)] last:border-b-0 cursor-pointer"
+    <button
+      type="button"
+      className="w-full flex items-center gap-[var(--space-xl)] px-[var(--space-3xl)] py-[var(--space-3xl)] border-b border-[var(--color-border-light)] last:border-b-0 cursor-pointer bg-transparent border-0 p-0 text-left"
       onClick={handleToggle}
       role="checkbox"
       aria-checked={item.checked}
       tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && handleToggle()}
     >
       {/* Checkbox with 44px tap target */}
       <div className="w-11 h-11 flex items-center justify-center flex-shrink-0">
@@ -73,7 +135,7 @@ const GroceryItem: React.FC<GroceryItemProps> = ({ item, onToggle }) => {
       >
         {item.quantity}
       </span>
-    </div>
+    </button>
   );
 };
 
