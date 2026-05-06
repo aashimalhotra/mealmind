@@ -115,7 +115,7 @@ async def _generate_plan_stream(
             }
             return
         except Exception as e:
-            logger.error(f"LLM call failed: {e}")
+            logger.error(f"LLM call failed: {str(e)}", exc_info=True)
             yield {
                 "event": "error",
                 "data": json.dumps({"event": "error", "error": "Failed to generate plan"}),

@@ -63,7 +63,7 @@ class LLMClient:
 
     async def _non_stream_chat(self, url: str, payload: dict, json_mode: bool):
         """Handle non-streaming chat request"""
-        response = await self._client.post(url, json=payload, headers=self._headers)
+        response = await self._client.post(url, json=payload, headers=self._headers, timeout=300.0)
         response.raise_for_status()
         
         data = response.json()
@@ -78,7 +78,7 @@ class LLMClient:
 
     async def _stream_chat(self, url: str, payload: dict) -> AsyncGenerator[str, None]:
         """Handle streaming chat request, yield content deltas"""
-        async with self._client.stream("POST", url, json=payload, headers=self._headers) as response:
+        async with self._client.stream("POST", url, json=payload, headers=self._headers, timeout=300.0) as response:
             response.raise_for_status()
             async for line in response.aiter_lines():
                 if not line.startswith("data: "):

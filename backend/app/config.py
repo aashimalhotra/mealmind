@@ -11,9 +11,10 @@ class Settings(BaseSettings):
     )
     
     DATABASE_URL: str = "sqlite:///./mealmind.db"
-    LITELLM_PROXY_URL: str = "http://localhost:4000"
-    LITELLM_PROXY_API_KEY: str = "sk-mealmind-local-dev-only"
+    LITELLM_PROXY_URL: str = ""
+    LITELLM_PROXY_API_KEY: str = ""
     USDA_API_BASE: str = "https://api.nal.usda.gov/fdc/v1"
+    USDA_API_KEY: str = ""  # Get your API key from https://api.data.gov/signup/
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",

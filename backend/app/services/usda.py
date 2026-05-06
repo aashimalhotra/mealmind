@@ -2,7 +2,9 @@
 USDA FoodData Central API service.
 
 Provides search and nutrition lookup using the USDA FoodData Central API.
-No API key is required for Foundation and SR Legacy data types under low rate limits.
+
+API key authentication is supported via the USDA_API_KEY environment variable.
+Get your free API key at https://api.data.gov/signup/
 
 Nutrient IDs (from USDA API):
 - 1003: Protein (g)
@@ -148,6 +150,10 @@ async def search_food(query: str, limit: int = 5) -> list[FoodHit]:
         "dataType": "Foundation,SR Legacy",
     }
     
+    # Add API key if configured
+    if settings.USDA_API_KEY:
+        params["api_key"] = settings.USDA_API_KEY
+    
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(url, params=params)
         response.raise_for_status()
@@ -192,8 +198,13 @@ async def get_macros(food_id: int) -> Macros:
     
     url = f"{settings.USDA_API_BASE}/food/{food_id}"
     
+    # Build request parameters
+    params = {}
+    if settings.USDA_API_KEY:
+        params["api_key"] = settings.USDA_API_KEY
+    
     async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.get(url)
+        response = await client.get(url, params=params)
         response.raise_for_status()
         
         data = response.json()
