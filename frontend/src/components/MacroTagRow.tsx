@@ -1,5 +1,4 @@
 interface MacroTagRowProps {
-  calories_per_serving?: number;
   protein_g?: number;
   carbs_g?: number;
   fat_g?: number;
@@ -7,7 +6,6 @@ interface MacroTagRowProps {
 }
 
 function MacroTagRow({
-  calories_per_serving,
   protein_g,
   carbs_g,
   fat_g,

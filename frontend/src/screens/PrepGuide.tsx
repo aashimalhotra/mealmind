@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getPrepSession, completePrepStep, PrepSession } from '../api/prep';
+import { getPrepSession, completePrepStep, type PrepSession } from '../api/prep';
 import PrepProgressBar from '../components/PrepProgressBar';
 import ActiveStepCard from '../components/ActiveStepCard';
 import BackgroundTimerList from '../components/BackgroundTimerList';
 import { useBackgroundTimers } from '../hooks/useBackgroundTimers';
-import { PrepStep } from '../components/ActiveStepCard';
 
 const PrepGuide: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -63,6 +62,7 @@ const PrepGuide: React.FC = () => {
           dish_color: currentStep.dish_color,
           started_at_step: currentStep.step_number,
           duration_min: currentStep.duration_min,
+          total_seconds: currentStep.duration_min * 60,
         });
       }
 
@@ -203,6 +203,8 @@ const PrepGuide: React.FC = () => {
           <div className="mb-4">
             <ActiveStepCard
               step={currentStep}
+              stepIndex={currentStepIndex}
+              totalSteps={prepSession.steps.length}
               onNext={handleNext}
               onPrevious={currentStepIndex > 0 ? handlePrevious : undefined}
             />

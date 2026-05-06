@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BackgroundTimer } from '../components/BackgroundTimerList';
+import type { BackgroundTimer } from '../components/BackgroundTimerList';
 
 interface UseBackgroundTimersReturn {
   timers: BackgroundTimer[];

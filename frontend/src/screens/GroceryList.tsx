@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import FilterTabs, { FilterType } from '../components/FilterTabs';
+import FilterTabs, { type FilterType } from '../components/FilterTabs';
 import CategorySection from '../components/CategorySection';
-import GroceryItem, { GroceryItemData } from '../components/GroceryItem';
 import PantryChip from '../components/PantryChip';
-import { getGroceryList, updateGroceryItem, GroceryListResponse, GroceryItem as GroceryItemType } from '../api/grocery';
+import { getGroceryList, updateGroceryItem, type GroceryListResponse, type GroceryItem as GroceryItemType } from '../api/grocery';
 
 // Helper to get category color (matches mockup)
 const getCategoryColor = (category: string): string => {

@@ -1,4 +1,4 @@
-import { Ingredient } from '../api/recipes';
+import type { Ingredient } from '../api/recipes';
 
 interface IngredientListProps {
   items: Ingredient[];

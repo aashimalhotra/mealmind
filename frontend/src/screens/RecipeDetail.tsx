@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getRecipe, RecipeDetail } from '../api/recipes';
+import { getRecipe } from '../api/recipes';
 import PortionToggle from '../components/PortionToggle';
 import MacroTagRow from '../components/MacroTagRow';
 import IngredientList from '../components/IngredientList';
@@ -126,7 +126,6 @@ function RecipeDetailScreen() {
             </p>
           </div>
           <MacroTagRow
-            calories_per_serving={recipe.calories_per_serving}
             protein_g={recipe.protein_g}
             carbs_g={recipe.carbs_g}
             fat_g={recipe.fat_g}

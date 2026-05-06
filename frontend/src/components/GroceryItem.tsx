@@ -13,9 +13,10 @@ export interface GroceryItemData {
 interface GroceryItemProps {
   item: GroceryItemData;
   queryKey?: string[];
+  onToggle?: (id: string) => void;
 }
 
-const GroceryItem: React.FC<GroceryItemProps> = ({ item, queryKey = ['groceryList'] }) => {
+const GroceryItem: React.FC<GroceryItemProps> = ({ item, queryKey = ['groceryList'], onToggle }) => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -30,37 +31,39 @@ const GroceryItem: React.FC<GroceryItemProps> = ({ item, queryKey = ['groceryLis
       // Snapshot previous value
       const previousData = queryClient.getQueryData(queryKey);
 
-      // Optimistically update the cache
-      queryClient.setQueryData(queryKey, (old: any) => {
-        if (!old) return old;
-        const newChecked = !item.checked;
-        const updated = JSON.parse(JSON.stringify(old));
+      // Optimistic update - only if not using external onToggle
+      if (!onToggle) {
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old) return old;
+          const newChecked = !item.checked;
+          const updated = JSON.parse(JSON.stringify(old));
 
-        // Update item in categories
-        if (updated.categories) {
-          updated.categories.forEach((category: any) => {
-            const itemIndex = category.items?.findIndex((i: any) => i.id === item.id) ?? -1;
-            if (itemIndex !== -1) {
-              category.items[itemIndex].checked = newChecked;
-            }
-          });
-        }
-
-        // Update item in pantry_items
-        if (updated.pantry_items) {
-          const pantryIndex = updated.pantry_items.findIndex((i: any) => i.id === item.id);
-          if (pantryIndex !== -1) {
-            updated.pantry_items[pantryIndex].checked = newChecked;
+          // Update item in categories
+          if (updated.categories) {
+            updated.categories.forEach((category: any) => {
+              const itemIndex = category.items?.findIndex((i: any) => i.id === item.id) ?? -1;
+              if (itemIndex !== -1) {
+                category.items[itemIndex].checked = newChecked;
+              }
+            });
           }
-        }
 
-        return updated;
-      });
+          // Update item in pantry_items
+          if (updated.pantry_items) {
+            const pantryIndex = updated.pantry_items.findIndex((i: any) => i.id === item.id);
+            if (pantryIndex !== -1) {
+              updated.pantry_items[pantryIndex].checked = newChecked;
+            }
+          }
+
+          return updated;
+        });
+      }
 
       // Return context for rollback
       return { previousData };
     },
-    onError: (err, variables, context) => {
+    onError: (_, __, context) => {
       // Roll back on error
       if (context?.previousData) {
         queryClient.setQueryData(queryKey, context.previousData);
@@ -68,12 +71,16 @@ const GroceryItem: React.FC<GroceryItemProps> = ({ item, queryKey = ['groceryLis
     },
     onSettled: () => {
       // Refetch after error or success to sync with server
-      queryClient.invalidateQueries({ queryKey });
+      if (!onToggle) {
+        queryClient.invalidateQueries({ queryKey });
+      }
     },
   });
 
   const handleToggle = () => {
-    if (!mutation.isPending) {
+    if (onToggle) {
+      onToggle(item.id);
+    } else if (!mutation.isPending) {
       mutation.mutate();
     }
   };

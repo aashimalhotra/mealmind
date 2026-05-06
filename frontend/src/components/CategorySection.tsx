@@ -1,5 +1,6 @@
 import React from 'react';
-import GroceryItem, { GroceryItemData } from './GroceryItem';
+import GroceryItem from './GroceryItem';
+import type { GroceryItemData } from './GroceryItem';
 
 interface CategorySectionProps {
   title: string;

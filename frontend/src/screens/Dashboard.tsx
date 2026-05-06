@@ -46,8 +46,8 @@ const Dashboard: React.FC = () => {
   const { data: plan, isLoading, isError, error, refetch } = useCurrentPlan();
   const todayWeekday = getTodayWeekday();
   
-  // Hook for today's prep session
-  const { prepSession, isPrepDay, isLoading: prepLoading, startPrep } = useTodaysPrepSession(plan?.id);
+  // Hook for today's prep session - only call when plan exists
+  const { prepSession: _, isPrepDay: __, startPrep: ___ } = useTodaysPrepSession(plan?.id);
 
   // Handle plan generation SSE
   const handleGeneratePlan = useCallback(() => {
@@ -324,6 +324,7 @@ const Dashboard: React.FC = () => {
         />
         <AIInsightCard body="You're low on iron this week. Consider adding spinach to tomorrow's lunch." />
         {/* Grocery list entry point - visible when current plan exists */}
+        {plan && (
         <div
           className="bg-surface rounded-card-lg py-2xl px-3xl mb-lg flex items-center justify-between cursor-pointer hover:opacity-90 transition-opacity"
           onClick={() => navigate(`/grocery/${plan.id}`)}
@@ -343,6 +344,7 @@ const Dashboard: React.FC = () => {
             <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
           </svg>
         </div>
+        )}
       </div>
       <div className="h-[80px]" />
     </div>

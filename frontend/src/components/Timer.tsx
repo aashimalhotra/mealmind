@@ -25,7 +25,6 @@ export function Timer({
   onTogglePause,
 }: TimerProps) {
   const { remaining, isComplete, extend } = useCountdown(durationSec, !autoStart || paused);
-  const durationMin = Math.ceil(durationSec / 60);
 
   const handleExtend = useCallback(() => {
     extend(60);

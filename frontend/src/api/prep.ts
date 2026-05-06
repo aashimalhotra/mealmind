@@ -1,5 +1,5 @@
-import { PrepStep, BackgroundTimer } from '../components/ActiveStepCard';
-import { BackgroundTimer as BGTimer } from '../components/BackgroundTimerList';
+import type { PrepStep } from '../components/ActiveStepCard';
+import type { BackgroundTimer as BGTimer } from '../components/BackgroundTimerList';
 
 export interface PrepSession {
   id: string;
