@@ -15,6 +15,7 @@ from app.schemas.plan import (
     PlanGenerateRequest, PlanGenerateChunk, PlanOut, PlanUpdate
 )
 from app.schemas.recipe import RecipeIn, Ingredient
+from app.schemas.grocery import GroceryList
 from app.prompts.plan_gen import build_plan_gen_prompt
 from app.services.llm import get_llm, LLMResponseError
 from app.services.nutrition import resolve_recipe_nutrition
@@ -376,3 +377,19 @@ async def update_plan(
     db.refresh(plan)
     
     return plan
+
+
+@router.post("/api/plans/{plan_id}/regenerate-grocery", response_model=GroceryList)
+async def regenerate_grocery_list(
+    plan_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Force regeneration of the grocery list for a meal plan.
+    
+    Replaces any existing grocery list with a freshly generated one.
+    """
+    from app.services.grocery import generate_grocery_list
+    
+    grocery_list = await generate_grocery_list(db, plan_id, force_regenerate=True)
+    return grocery_list

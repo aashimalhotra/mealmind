@@ -5,6 +5,7 @@ from app.routers.profile import router as profile_router
 from app.routers.recipes import router as recipes_router
 from app.routers.plans import router as plans_router
 from app.routers.prep import router as prep_router
+from app.routers.grocery import router as grocery_router
 
 app = FastAPI(title="MealMind API")
 
@@ -20,6 +21,7 @@ app.include_router(profile_router, prefix="/api/profile", tags=["profile"])
 app.include_router(recipes_router, prefix="/api/recipes", tags=["recipes"])
 app.include_router(plans_router, tags=["plans"])
 app.include_router(prep_router, prefix="/api/prep", tags=["prep"])
+app.include_router(grocery_router, tags=["grocery"])
 
 
 @app.get("/api/health")

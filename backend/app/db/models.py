@@ -71,7 +71,6 @@ class Household(Base):
     # Relationships
     members: Mapped[list["User"]] = relationship(back_populates="household")
     meal_plans: Mapped[list["MealPlan"]] = relationship(back_populates="household")
-    prep_sessions: Mapped[list["PrepSession"]] = relationship(back_populates="household")
     chat_history: Mapped[list["ChatHistory"]] = relationship(back_populates="household")
 
 
@@ -155,7 +154,6 @@ class MealPlan(Base):
 
     # Relationships
     household: Mapped["Household"] = relationship(back_populates="meal_plans")
-    prep_sessions: Mapped[list["PrepSession"]] = relationship(back_populates="meal_plan")
 
 
 class PrepSession(Base):
