@@ -7,9 +7,8 @@ model_list:
       api_key: os.environ/REMOTE_LITELLM_API_KEY
   - model_name: mealmind-json
     litellm_params:
-      model: openai/best
-      api_base: os.environ/REMOTE_LITELLM_API_BASE
-      api_key: os.environ/REMOTE_LITELLM_API_KEY
+      model: ollama/gemma4
+      api_base: os.environ/OLLAMA_API_BASE
       response_format: { "type": "json_object" }
 general_settings:
   master_key: sk-mealmind-local-dev-only
