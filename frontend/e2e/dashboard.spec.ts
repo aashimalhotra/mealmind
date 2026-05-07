@@ -7,8 +7,8 @@ test('dashboard matches baseline', async ({ page }) => {
     const root = document.getElementById('root');
     if (!root) return false;
     // Wait for real content (not skeleton loaders)
-    const hasMealCards = document.querySelectorAll('.meal-card').length > 0;
-    const hasMacroRings = document.querySelectorAll('.macro-ring').length > 0;
+    const hasMealCards = document.querySelectorAll('[class*="border-border"]').length > 0;
+    const hasMacroRings = document.querySelectorAll('svg').length > 0;
     const hasSkeletons = document.querySelectorAll('.animate-pulse').length > 0;
     return (hasMealCards || hasMacroRings) && !hasSkeletons;
   }, { timeout: 30000 });
