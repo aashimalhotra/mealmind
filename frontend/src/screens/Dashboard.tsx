@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import MacroRingRow from '../components/MacroRingRow';
 import MealCard from '../components/MealCard';
 import WeekStrip from '../components/WeekStrip';
@@ -8,7 +9,8 @@ import AIInsightCard from '../components/AIInsightCard';
 import PersonToggle from '../components/PersonToggle';
 import { useCurrentPlan } from '../hooks/useCurrentPlan';
 import { useTodaysPrepSession } from '../hooks/useTodaysPrepSession';
-import { generatePlan } from '../api/plans';
+import { generatePlan, getPlanInsight, PlanInsight } from '../api/plans';
+import { useChatStore } from '../stores/chatStore';
 
 // Helper to get today's weekday (lowercase, e.g., 'monday')
 function getTodayWeekday(): string {
@@ -48,6 +50,27 @@ const Dashboard: React.FC = () => {
   
   // Hook for today's prep session - only call when plan exists
   const { prepSession: _, isPrepDay: __, startPrep: ___ } = useTodaysPrepSession(plan?.id);
+
+  // FAB pulse control
+  const setFabPulsing = useChatStore((state) => state.setFabPulsing);
+
+  // Fetch plan insight
+  const { data: insight, isLoading: insightLoading, isError: insightError } = useQuery<PlanInsight, Error>({
+    queryKey: ['planInsight', plan?.id],
+    queryFn: () => getPlanInsight(plan!.id),
+    enabled: !!plan?.id,
+  });
+
+  // Update FAB pulse based on insight severity
+  React.useEffect(() => {
+    if (insight?.severity === 'warning') {
+      setFabPulsing(true);
+    } else {
+      setFabPulsing(false);
+    }
+    // Cleanup on unmount
+    return () => setFabPulsing(false);
+  }, [insight, setFabPulsing]);
 
   // Handle plan generation SSE
   const handleGeneratePlan = useCallback(() => {
@@ -343,7 +366,15 @@ const Dashboard: React.FC = () => {
           summary="Spiced ground meat + creamy spinach + quinoa pilaf"
           durationLabel="~1.5 hrs · covers Thu–Sat"
         />
-        <AIInsightCard body="You're low on iron this week. Consider adding spinach to tomorrow's lunch." />
+        {insight ? (
+          <AIInsightCard
+            title={insight.title}
+            body={insight.body}
+            severity={insight.severity}
+          />
+        ) : insightLoading ? (
+          <div className="h-20 rounded-xl bg-gray-200 animate-pulse mb-4" />
+        ) : null}
         {/* Grocery list entry point - visible when current plan exists */}
         {plan && (
         <div

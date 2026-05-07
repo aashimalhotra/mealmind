@@ -186,3 +186,20 @@ export async function getPlan(planId: string): Promise<PlanOut> {
 export async function approvePlan(planId: string): Promise<PlanOut> {
   return apiPatch(`/api/plans/${planId}`, { status: 'approved' }) as Promise<PlanOut>;
 }
+
+/**
+ * Insight response from GET /api/plans/{id}/insight
+ */
+export interface PlanInsight {
+  severity: 'info' | 'warning' | 'critical';
+  title?: string;
+  body: string;
+}
+
+/**
+ * Fetch AI insight for a specific plan
+ * GET /api/plans/{id}/insight
+ */
+export async function getPlanInsight(planId: string): Promise<PlanInsight> {
+  return apiGet(`/api/plans/${planId}/insight`) as Promise<PlanInsight>;
+}

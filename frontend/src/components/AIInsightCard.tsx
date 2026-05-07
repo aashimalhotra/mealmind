@@ -3,12 +3,20 @@ import React from 'react';
 interface AIInsightCardProps {
   title?: string;
   body: string;
+  severity?: 'info' | 'warning' | 'critical';
 }
 
 const AIInsightCard: React.FC<AIInsightCardProps> = ({
   title = 'AI insight',
   body,
+  severity = 'info',
 }) => {
+  const iconBgClass = {
+    info: 'bg-accent-gold',
+    warning: 'bg-amber-500',
+    critical: 'bg-red-600',
+  }[severity];
+
   return (
     <div
       className="
@@ -18,7 +26,7 @@ const AIInsightCard: React.FC<AIInsightCardProps> = ({
       "
     >
       <div className="flex items-start gap-xl">
-        <div className="w-7 h-7 rounded-full bg-accent-gold flex items-center justify-center flex-shrink-0 mt-[2px]">
+        <div className={`w-7 h-7 rounded-full ${iconBgClass} flex items-center justify-center flex-shrink-0 mt-[2px]`}>
           <svg width="14" height="14" viewBox="0 0 14 14">
             <path
               d="M7 1v5l3 3"
