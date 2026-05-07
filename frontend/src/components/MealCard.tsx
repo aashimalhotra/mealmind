@@ -35,6 +35,7 @@ const MealCard: React.FC<MealCardProps> = ({
         onClick={onClick}
         role="button"
         tabIndex={0}
+        data-testid="meal-card"
       >
         <MealTypeBadge type="dine-out" />
         <span className="ml-[var(--space-md)] text-[var(--font-size-body-sm)] text-[var(--color-text-tertiary)]">
@@ -50,6 +51,7 @@ const MealCard: React.FC<MealCardProps> = ({
       onClick={onClick}
       role="button"
       tabIndex={0}
+      data-testid="meal-card"
     >
       <div className="flex-1">
         <div className="flex items-center gap-[var(--space-md)] mb-[var(--space-sm)]">
