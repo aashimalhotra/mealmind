@@ -104,13 +104,12 @@ If migrating to PostgreSQL, see `docs/postgres-migration.md` for step-by-step gu
 
 ## Next Steps (Phase 2)
 
-1. Fix backend config validation for smoother deployments
-2. Fix remaining frontend test failures (PrepProgressBar, useBackgroundTimers, GroceryItem optimistic updates)
-3. Run full Lighthouse PWA audit and achieve ≥ 90 score
-4. Complete E2E test run in CI pipeline
-5. Replace placeholder macros with real recipe data
-6. Dynamic week strip from plan data
-7. Add user authentication for multi-user support
+1. Fix remaining frontend test failures (PrepProgressBar, useBackgroundTimers, GroceryItem optimistic updates)
+2. Run full Lighthouse PWA audit and achieve ≥ 90 score
+3. Complete E2E test run in CI pipeline
+4. Replace placeholder macros with real recipe data
+5. Dynamic week strip from plan data
+6. Add user authentication for multi-user support
 
 ## Sign-off
 
