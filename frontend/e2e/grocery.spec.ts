@@ -37,8 +37,8 @@ test.describe('Grocery List Visual Baseline', () => {
     // Click on "Sun prep" filter
     await page.getByText('Sun prep').click();
     
-    // Verify filter is active (has active styling)
+    // Verify filter is active (has active styling - primary background)
     const sunPrepTab = page.getByText('Sun prep');
-    await expect(sunPrepTab).toHaveClass(/active/);
+    await expect(sunPrepTab).toHaveClass(/bg-\[var\(--color-primary\)\]/);
   });
 });

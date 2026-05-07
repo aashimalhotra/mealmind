@@ -361,7 +361,7 @@ const Dashboard: React.FC = () => {
           }}
         />
       </div>
-      <div className="px-[var(--page-padding)]">
+      <div className="px-[var(--page-padding)]" data-testid="dashboard-content">
         <h2 className="text-body-lg font-medium text-text-primary mt-4 mb-3">Today's meals</h2>
         <div className="flex flex-col gap-3 mb-4">
           {todayMeals.length > 0 ? (
