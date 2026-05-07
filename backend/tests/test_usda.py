@@ -92,7 +92,7 @@ async def test_get_macros_extracts_nutrient_numbers(httpx_mock):
     usda._macros_cache.clear()
     
     httpx_mock.add_response(
-        url="https://api.nal.usda.gov/fdc/v1/food/171077",
+        url=re.compile(r"https://api\.nal\.usda\.gov/fdc/v1/food/171077.*"),
         json=SAMPLE_FOOD_DETAIL,
     )
     
@@ -112,7 +112,7 @@ async def test_get_macros_raises_on_404(httpx_mock):
     usda._macros_cache.clear()
     
     httpx_mock.add_response(
-        url="https://api.nal.usda.gov/fdc/v1/food/99999999",
+        url=re.compile(r"https://api\.nal\.usda\.gov/fdc/v1/food/99999999.*"),
         status_code=404,
     )
     
@@ -127,7 +127,7 @@ async def test_get_macros_caches_results(httpx_mock):
     usda._macros_cache.clear()
     
     httpx_mock.add_response(
-        url="https://api.nal.usda.gov/fdc/v1/food/171077",
+        url=re.compile(r"https://api\.nal\.usda\.gov/fdc/v1/food/171077.*"),
         json=SAMPLE_FOOD_DETAIL,
     )
     

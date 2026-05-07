@@ -8,6 +8,7 @@ Tests:
 - test_resolve_recipe_nutrition_skips_already_resolved (idempotency)
 """
 
+import json
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
@@ -142,8 +143,8 @@ async def test_resolve_ingredient_llm_failure_returns_zeros():
             result = await resolve_ingredient("mystery ingredient")
     
     assert result.nutrition_source == "llm_estimate"
-    assert result.macros_per_100g.calories == 0.0
-    assert result.macros_per_100g.protein_g == 0.0
+    assert result.macros_per_100g is None
+    assert result.note is not None  # Should have failure note
 
 
 # ---- Tests for aggregate_macros ----
@@ -252,11 +253,11 @@ def test_aggregate_macros_skips_ingredients_without_nutrition():
 @pytest.mark.asyncio
 async def test_resolve_recipe_nutrition_resolves_unresolved_ingredients():
     """Test that resolve_recipe_nutrition resolves ingredients missing nutrition data."""
-    # Create a recipe with one unresolved ingredient
+    # Create a recipe with one unresolved ingredient (ingredients as JSON string)
     recipe = Recipe(
         id="test_recipe_2",
         display_name="Test Recipe",
-        ingredients=[
+        ingredients=json.dumps([
             {
                 "name": "chicken breast",
                 "quantity_1500": 200.0,
@@ -269,7 +270,7 @@ async def test_resolve_recipe_nutrition_resolves_unresolved_ingredients():
                 "fat_per_100g": None,
                 "nutrition_source": "usda",
             }
-        ],
+        ]),
     )
     
     # Mock resolve_ingredient
@@ -286,8 +287,8 @@ async def test_resolve_recipe_nutrition_resolves_unresolved_ingredients():
         
         await resolve_recipe_nutrition(recipe, mock_db)
     
-    # Check that ingredient was updated
-    ing_data = recipe.ingredients[0]
+    # Check that ingredient was updated (ingredients is now a JSON string)
+    ing_data = json.loads(recipe.ingredients)[0]
     assert ing_data["usda_food_id"] == 67890
     assert ing_data["calories_per_100g"] == 165.0
     assert ing_data["nutrition_source"] == "usda"
@@ -304,11 +305,11 @@ async def test_resolve_recipe_nutrition_resolves_unresolved_ingredients():
 @pytest.mark.asyncio
 async def test_resolve_recipe_nutrition_skips_already_resolved():
     """Test idempotency: already-resolved ingredients are skipped."""
-    # Create a recipe with already-resolved ingredients
+    # Create a recipe with already-resolved ingredients (as JSON string)
     recipe = Recipe(
         id="test_recipe_3",
         display_name="Test Recipe",
-        ingredients=[
+        ingredients=json.dumps([
             {
                 "name": "olive oil",
                 "quantity_1500": 30.0,
@@ -321,7 +322,7 @@ async def test_resolve_recipe_nutrition_skips_already_resolved():
                 "fat_per_100g": 100.0,
                 "nutrition_source": "usda",
             }
-        ],
+        ]),
         calories_per_serving=265,  # 30/100 * 884
         protein_g=0.0,
         carbs_g=0.0,
@@ -346,7 +347,7 @@ async def test_resolve_recipe_nutrition_computes_totals_correctly():
     recipe = Recipe(
         id="test_recipe_4",
         display_name="Two Ingredient Recipe",
-        ingredients=[
+        ingredients=json.dumps([
             {
                 "name": "chicken",
                 "quantity_1500": 200.0,
@@ -371,7 +372,7 @@ async def test_resolve_recipe_nutrition_computes_totals_correctly():
                 "fat_per_100g": None,
                 "nutrition_source": "usda",
             },
-        ],
+        ]),
     )
     
     # Mock resolve_ingredient to return pre-defined values

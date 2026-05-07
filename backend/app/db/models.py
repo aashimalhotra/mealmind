@@ -164,11 +164,13 @@ class PrepSession(Base):
     id: Mapped[str] = mapped_column(
         Text,
         primary_key=True,
+        default=lambda: secrets.token_hex(4),
     )
     plan_id: Mapped[str] = mapped_column(
         Text, nullable=False
     )
     day: Mapped[str] = mapped_column(Text, nullable=False)
+    recipe_ids: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(Text, default="in_progress")
     steps_json: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

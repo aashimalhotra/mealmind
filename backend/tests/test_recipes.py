@@ -286,11 +286,10 @@ async def test_get_recipe_with_prep_session_id(async_client, test_db_session):
     
     # Create a PrepSession directly in the test DB with this recipe_id
     prep_session = PrepSession(
-        meal_plan_id="test_plan_123",  # Dummy ID
-        household_id="test_household_123",  # Dummy ID
+        plan_id="test_plan_123",  # Use plan_id not meal_plan_id
         day="sunday",
         recipe_ids=json.dumps([recipe_id]),
-        steps=json.dumps([]),
+        steps_json=json.dumps([]),  # Use steps_json not steps
         status="active"
     )
     test_db_session.add(prep_session)
