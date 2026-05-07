@@ -132,7 +132,7 @@ An array of objects, one per unique recipe in plan_data. Each recipe has:
 - "authentic_name": Authentic name subtitle (e.g., "jeera rice")
 - "description": Brief description (e.g., "Fragrant rice with cumin seeds and ghee")
 - "ingredients": Array of ingredient objects with:
-  - "name": Ingredient name
+  - "name": Ingredient name - use simple, clean English names (e.g., "cooking oil", "butter"). Do NOT use URL-encoded names (like "Cooking+Oil%2FButter") or special URL characters. Use spaces, not + or % codes. USDA database friendly names work best.
   - "quantity_1500": Quantity in grams for 1500 kcal person
   - "quantity_1800": Quantity in grams for 1800 kcal person
   - "unit": "g" (all quantities are in grams)

@@ -16,6 +16,7 @@ Nutrient IDs (from USDA API):
 import httpx
 from dataclasses import dataclass
 from typing import Optional
+from urllib.parse import unquote_plus
 from cachetools import TTLCache
 
 from app.config import settings
@@ -40,6 +41,11 @@ class FoodHit:
     food_id: int
     description: str
     macros_per_100g: dict  # keys: calories, protein_g, carbs_g, fat_g
+
+
+def sanitize_food_query(query: str) -> str:
+    """Sanitize food query by decoding URL-encoded characters."""
+    return unquote_plus(query).strip()
 
 
 def _extract_macros_from_food(food_data: dict) -> Optional[Macros]:
@@ -143,6 +149,7 @@ async def search_food(query: str, limit: int = 5) -> list[FoodHit]:
     Returns:
         List of FoodHit objects with food_id, description, and macros_per_100g
     """
+    query = sanitize_food_query(query)
     url = f"{settings.USDA_API_BASE}/foods/search"
     params = {
         "query": query,

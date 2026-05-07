@@ -6,6 +6,7 @@ from app.routers.recipes import router as recipes_router
 from app.routers.plans import router as plans_router
 from app.routers.prep import router as prep_router
 from app.routers.grocery import router as grocery_router
+from app.routers.chat import router as chat_router
 
 app = FastAPI(title="MealMind API")
 

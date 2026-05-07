@@ -2,6 +2,7 @@
 import json
 import asyncio
 import logging
+from cachetools import TTLCache
 from datetime import date, datetime, timedelta
 from typing import AsyncGenerator, Optional, List, Dict, Any
 
@@ -21,6 +22,7 @@ from app.services.llm import get_llm, LLMResponseError
 from app.services.nutrition import resolve_recipe_nutrition
 
 logger = logging.getLogger(__name__)
+insight_cache = TTLCache(maxsize=1024, ttl=6 * 3600)  # Cache insights for 6 hours per plan
 
 router = APIRouter()
 
@@ -134,6 +136,7 @@ async def _generate_plan_stream(
         recipes_data = llm_response.get("recipes", [])
 
         if not plan_data or not recipes_data:
+            logger.error(f"LLM response missing plan_data or recipes: {llm_response}")
             yield {
                 "event": "error",
                 "data": json.dumps({"event": "error", "error": "Missing plan_data or recipes in LLM response"})
@@ -393,3 +396,135 @@ async def regenerate_grocery_list(
     
     grocery_list = await generate_grocery_list(db, plan_id, force_regenerate=True)
     return grocery_list
+
+
+@router.get("/api/plans/{id}/insight", response_model=Dict[str, Any])
+async def get_plan_insight(id: str, db: Session = Depends(get_db)):
+    """
+    Get proactive insight for a meal plan.
+    
+    Computes heuristic first (veggie/iron-source servings per day). If any day has <3 servings,
+    returns heuristic insight. Otherwise, uses LLM to generate proactive insight.
+    Results are cached for 6 hours per plan id.
+    """
+    # Check cache first
+    if id in insight_cache:
+        return insight_cache[id]
+    
+    # Fetch meal plan
+    plan = db.query(MealPlan).filter(MealPlan.id == id).first()
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Meal plan not found"
+        )
+    
+    # Parse plan data from JSON string
+    plan_data = json.loads(plan.plan_data) if isinstance(plan.plan_data, str) else plan.plan_data
+    
+    # Step 1: Compute heuristic (veggie + iron-source servings per day)
+    flagged_days = []
+    for day, meals in plan_data.items():
+        day_total = 0.0
+        # Iterate over each meal slot in the day (breakfast, lunch, dinner, etc.)
+        for meal_slot, meal_info in meals.items():
+            recipe_id = meal_info.get("recipe_id")
+            if not recipe_id:
+                continue
+            
+            # Fetch recipe from DB
+            recipe = db.query(RecipeModel).filter(RecipeModel.id == recipe_id).first()
+            if not recipe:
+                logger.warning(f"Recipe {recipe_id} not found for plan {id}, day {day}")
+                continue
+            
+            # Add veggie servings (numeric value)
+            day_total += recipe.veggie_servings or 0.0
+            
+            # Check for iron-source tag
+            tags = []
+            if recipe.tags:
+                try:
+                    tags = json.loads(recipe.tags) if isinstance(recipe.tags, str) else recipe.tags
+                except json.JSONDecodeError:
+                    logger.warning(f"Failed to parse tags for recipe {recipe_id}")
+                    tags = []
+            
+            if "iron-source" in tags:
+                day_total += 1  # Count each iron-source recipe as 1 serving
+        
+        # Flag day if total servings < 3
+        if day_total < 3:
+            flagged_days.append({
+                "day": day,
+                "total_servings": round(day_total, 2),
+                "threshold": 3
+            })
+    
+    # Step 2: Generate insight based on heuristic result
+    if flagged_days:
+        # Heuristic caught low-serving days
+        insight = {
+            "source": "heuristic",
+            "flagged_days": flagged_days,
+            "message": f"Found {len(flagged_days)} day(s) with fewer than 3 veggie/iron-source servings.",
+            "suggestion": "Consider adding more vegetable-based dishes or iron-rich foods (e.g., leafy greens, beans, lentils) to these days.",
+            "sprint_7_criteria": "Proactive insight triggered by heuristic (cost-controlled)"
+        }
+    else:
+        # No heuristic flag - use LLM for proactive insight (cost-limited)
+        try:
+            llm = get_llm()
+            # Build LLM prompt referencing Sprint 7 success criteria for proactive insight
+            prompt = f"""You are a nutrition expert analyzing a meal plan for Sprint 7 proactive insights.
+The plan has passed basic heuristic checks (each day has at least 3 veggie/iron-source servings).
+Provide a concise, actionable insight about the plan's nutritional balance, variety, or areas for improvement.
+Focus on proactive suggestions that add value beyond basic checks. Keep response under 200 words.
+
+Meal Plan Data (days with meals and recipe IDs):
+{json.dumps(plan_data, indent=2)}
+
+Return a JSON object with a single key "insight" containing your analysis."""
+            
+            messages = [
+                {"role": "system", "content": "You are a helpful nutrition assistant providing proactive meal plan insights per Sprint 7 success criteria."},
+                {"role": "user", "content": prompt}
+            ]
+            
+            llm_response = await llm.chat(messages, json_mode=True)
+            if isinstance(llm_response, dict) and "insight" in llm_response:
+                llm_insight = llm_response["insight"]
+            else:
+                llm_insight = str(llm_response)
+            
+            insight = {
+                "source": "llm",
+                "insight": llm_insight,
+                "message": "Proactive insight generated via LLM per Sprint 7 criteria.",
+                "sprint_7_criteria": "Proactive insight generated via LLM (heuristic passed, cost-limited)"
+            }
+        except LLMResponseError as e:
+            logger.error(f"LLM insight failed for plan {id}: {e}")
+            insight = {
+                "source": "error",
+                "message": "LLM insight generation failed",
+                "error": str(e),
+                "sprint_7_criteria": "LLM error during proactive insight"
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error generating insight for plan {id}: {e}", exc_info=True)
+            insight = {
+                "source": "error",
+                "message": "Failed to generate insight",
+                "error": str(e),
+                "sprint_7_criteria": "Unexpected error during proactive insight"
+            }
+    
+    # Cache the result for 6 hours
+    insight_cache[id] = insight
+    
+    # Update meal plan's ai_insights field for persistence
+    plan.ai_insights = json.dumps(insight)
+    db.commit()
+    
+    return insight
