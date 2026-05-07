@@ -38,12 +38,13 @@ Phase 1 of MealMind MVP has been completed and merged to main. This release incl
 **Notes:** All backend tests now passing after fixing Settings class configuration.
 
 ### Frontend Tests
-**Status:** ⚠️ Partial Failure (14 passed, 14 failed)  
+**Status:** ⚠️ Partial Failure (73 passed, 6 failed)  
 **Issues:**
-- Missing QueryClientProvider wrapper in some test files (GroceryList.test.tsx)
-- Pre-existing test setup issues
+- PrepProgressBar test failures
+- useBackgroundTimers test failures
+- GroceryItem optimistic update test failures
 
-**Passing Tests:** 61 tests passing across 14 test files
+**Passing Tests:** 73 tests passing
 
 ### E2E Playwright Tests
 **Status:** ✅ Test File Created  
@@ -67,7 +68,7 @@ cd frontend && pnpm exec lighthouse http://localhost:8401 --preset=desktop --onl
 ## Updates (Post-Release Fixes)
 
 - **Backend Config Fix**: Fixed Settings class with `extra='ignore'` for extra .env fields, resolving the Pydantic validation error. Backend tests now pass (83 passed, 1 skipped).
-- **Frontend Test Fix**: Added QueryClientProvider wrapper to test files (GroceryList.test.tsx, CategorySection.test.tsx, PrepGuide.test.tsx, Dashboard.test.tsx) fixing React Query hook errors. Reduced failing frontend tests from 14 to 6.
+- **Frontend Test Fix**: Added QueryClientProvider wrapper to test files (GroceryList.test.tsx, CategorySection.test.tsx, PrepGuide.test.tsx, Dashboard.test.tsx) fixing React Query hook errors. Frontend tests now at 73 passed, 6 failed (reduced from 14 failures).
 
 ## Manual Testing Not Performed
 
@@ -81,9 +82,8 @@ Due to time constraints and environment limitations, the following were not test
 
 ## Known Issues
 
-1. **Frontend Test Setup** - Some tests missing QueryClientProvider wrapper
-2. **Recipe Macros** - Placeholder macros shown in Dashboard (0 values)
-3. **Week Strip** - Hardcoded data instead of dynamic plan data
+1. **Recipe Macros** - Placeholder macros shown in Dashboard (0 values)
+2. **Week Strip** - Hardcoded data instead of dynamic plan data
 
 ## Deployment Notes
 
@@ -105,7 +105,7 @@ If migrating to PostgreSQL, see `docs/postgres-migration.md` for step-by-step gu
 ## Next Steps (Phase 2)
 
 1. Fix backend config validation for smoother deployments
-2. Fix frontend test setup issues
+2. Fix remaining frontend test failures (PrepProgressBar, useBackgroundTimers, GroceryItem optimistic updates)
 3. Run full Lighthouse PWA audit and achieve ≥ 90 score
 4. Complete E2E test run in CI pipeline
 5. Replace placeholder macros with real recipe data
