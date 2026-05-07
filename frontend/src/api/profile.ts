@@ -1,33 +1,49 @@
 import { apiGet, apiPatch } from './client';
 
 // --- Type Definitions ---
-
-export interface ProfileOut {
-  household_id: string;
-  name: string;
-  cuisine_pref: string[];
-  prep_days: string[];
-  dineout_days: string[];
-  users: UserOut[];
-}
-
-export interface UserOut {
+export interface ProfileUser {
   id: string;
   name: string;
   calorie_target: number;
+  protein_pct?: number;
+  carbs_pct?: number;
+  fat_pct?: number;
+  veggie_target?: number;
+}
+
+export interface ProfileHousehold {
+  id: string;
+  name: string;
+  cuisine_pref?: string;
+  prep_days: string[];
+  dineout_days: string[];
+  members: ProfileUser[];
+}
+
+export interface ProfileOut {
+  household: ProfileHousehold;
+}
+
+export interface ProfileUserUpdate {
+  id: string;
+  calorie_target?: number;
+  protein_pct?: number;
+  carbs_pct?: number;
+  fat_pct?: number;
+  veggie_target?: number;
 }
 
 export interface ProfileUpdate {
-  name?: string;
-  cuisine_pref?: string[];
+  cuisine_pref?: string;
   prep_days?: string[];
   dineout_days?: string[];
+  users?: ProfileUserUpdate[];
 }
 
 // --- API Functions ---
 
 /**
- * Get the current household profile
+ * Fetch current household and user profile data
  * GET /api/profile
  */
 export async function getProfile(): Promise<ProfileOut> {
@@ -35,9 +51,9 @@ export async function getProfile(): Promise<ProfileOut> {
 }
 
 /**
- * Update the household profile
+ * Update household and user profile data
  * PATCH /api/profile
  */
-export async function updateProfile(data: ProfileUpdate): Promise<ProfileOut> {
-  return apiPatch('/api/profile', data) as Promise<ProfileOut>;
+export async function updateProfile(profileUpdate: ProfileUpdate): Promise<ProfileOut> {
+  return apiPatch('/api/profile', profileUpdate) as Promise<ProfileOut>;
 }

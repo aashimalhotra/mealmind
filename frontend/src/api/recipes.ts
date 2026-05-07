@@ -1,20 +1,14 @@
 import { apiGet } from './client';
 
+// --- Type Definitions ---
 export interface Ingredient {
   name: string;
-  quantity_1500: number;
-  quantity_1800: number;
+  quantity: number;
   unit: string;
-  usda_food_id?: number;
-  calories_per_100g?: number;
-  protein_per_100g?: number;
-  carbs_per_100g?: number;
-  fat_per_100g?: number;
-  nutrition_source: 'usda' | 'llm_estimate';
-  note?: string;
+  optional?: boolean;
 }
 
-export interface RecipeDetail {
+export interface RecipeOut {
   id: string;
   display_name: string;
   authentic_name?: string;
@@ -37,9 +31,39 @@ export interface RecipeDetail {
   carbs_g?: number;
   fat_g?: number;
   veggie_servings?: number;
-  prep_session_id?: string | null;
 }
 
-export async function getRecipe(id: string): Promise<RecipeDetail> {
-  return apiGet(`/api/recipes/${id}`);
+export interface RecipeDetailOut extends RecipeOut {
+  prep_session_id?: string;
+}
+
+// --- API Functions ---
+
+/**
+ * Fetch list of saved recipes with optional filters
+ * GET /api/recipes
+ */
+export async function getRecipes(params?: {
+  cuisine?: string;
+  tags?: string;
+  favorites?: boolean;
+  limit?: number;
+}): Promise<RecipeOut[]> {
+  const query = new URLSearchParams();
+  if (params?.cuisine) query.set('cuisine', params.cuisine);
+  if (params?.tags) query.set('tags', params.tags);
+  if (params?.favorites !== undefined) query.set('favorites', params.favorites.toString());
+  if (params?.limit) query.set('limit', params.limit.toString());
+  
+  const queryString = query.toString();
+  const path = `/api/recipes${queryString ? `?${queryString}` : ''}`;
+  return apiGet(path) as Promise<RecipeOut[]>;
+}
+
+/**
+ * Fetch single recipe by ID
+ * GET /api/recipes/:id
+ */
+export async function getRecipe(recipeId: string): Promise<RecipeDetailOut> {
+  return apiGet(`/api/recipes/${recipeId}`) as Promise<RecipeDetailOut>;
 }
