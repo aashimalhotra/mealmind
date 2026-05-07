@@ -144,19 +144,18 @@ describe('Dashboard', () => {
     };
     (getCurrentPlan as vi.Mock).mockResolvedValueOnce(mockPlan);
 
-    // Get the mock useNavigate function
-    const mockNavigate = vi.fn();
-    const useNavigateMock = vi.mocked(useNavigate);
-    useNavigateMock.mockReturnValueOnce(mockNavigate);
-
     renderWithQueryClient(<Dashboard />);
+
+    // Get the navigate function returned by useNavigate (first call result)
+    const useNavigateMock = vi.mocked(useNavigate);
+    const mockNavigate = useNavigateMock.mock.results[0].value;
 
     // Wait for dashboard to load with plan
     await waitFor(() => {
       expect(screen.getByText(/grocery list/i)).toBeInTheDocument();
     });
 
-    // Find and click the grocery list row
+    // Find and click the grocery row
     const groceryRow = screen.getByText('Grocery list').closest('div[role="button"]');
     expect(groceryRow).toBeInTheDocument();
     fireEvent.click(groceryRow!);
