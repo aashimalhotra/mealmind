@@ -31,46 +31,50 @@ export interface GroceryListResponse {
  * GET /api/grocery/:planId
  */
 export async function getGroceryList(planId: string): Promise<GroceryListResponse> {
-  return apiGet(`/grocery/${planId}`);
+  return apiGet(`/api/grocery/${planId}`);
 }
 
 /**
  * Update a single grocery item (toggle checked, pantry status, etc.)
- * PATCH /api/grocery/item/:itemId
+ * PATCH /api/grocery/{planId}/item/{itemId}
  */
 export async function updateGroceryItem(
+  planId: string,
   itemId: string,
   updates: Partial<GroceryItem>
 ): Promise<GroceryItem> {
-  return apiPatch(`/grocery/item/${itemId}`, updates);
+  return apiPatch(`/api/grocery/${planId}/item/${itemId}`, updates);
 }
 
 /**
  * Toggle checked status of a grocery item
  */
 export async function toggleItemChecked(
+  planId: string,
   itemId: string,
   checked: boolean
 ): Promise<GroceryItem> {
-  return updateGroceryItem(itemId, { checked });
+  return updateGroceryItem(planId, itemId, { checked });
 }
 
 /**
  * Toggle pantry status of a grocery item (move between pantry and main list)
  */
 export async function togglePantryStatus(
+  planId: string,
   itemId: string,
   is_pantry_chip: boolean
 ): Promise<GroceryItem> {
-  return updateGroceryItem(itemId, { is_pantry_chip });
+  return updateGroceryItem(planId, itemId, { is_pantry_chip });
 }
 
 /**
  * Toggle checked status of a grocery item (optimistic update compatible)
  */
 export async function toggleGroceryItemChecked(
+  planId: string,
   itemId: string,
   checked: boolean
 ): Promise<GroceryItem> {
-  return updateGroceryItem(itemId, { checked });
+  return updateGroceryItem(planId, itemId, { checked });
 }

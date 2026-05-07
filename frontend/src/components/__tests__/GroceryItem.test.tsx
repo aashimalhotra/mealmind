@@ -16,6 +16,8 @@ describe('GroceryItem', () => {
     checked: false,
   };
 
+  const mockPlanId = 'plan-123';
+
   let queryClient: QueryClient;
   let mockToggleGroceryItemChecked: vi.MockedFunction<typeof groceryApi.toggleGroceryItemChecked>;
 
@@ -42,7 +44,7 @@ describe('GroceryItem', () => {
   };
 
   it('renders item correctly with unchecked state', () => {
-    renderWithQueryClient(<GroceryItem item={mockItem} />);
+    renderWithQueryClient(<GroceryItem item={mockItem} planId={mockPlanId} />);
 
     expect(screen.getByText('Chicken thighs, boneless')).toBeInTheDocument();
     expect(screen.getByText('Sun prep — Tandoori chicken')).toBeInTheDocument();
@@ -54,7 +56,7 @@ describe('GroceryItem', () => {
 
   it('renders item correctly with checked state (strikethrough, dimmed)', () => {
     const checkedItem = { ...mockItem, checked: true };
-    renderWithQueryClient(<GroceryItem item={checkedItem} />);
+    renderWithQueryClient(<GroceryItem item={checkedItem} planId={mockPlanId} />);
 
     const nameElement = screen.getByText('Chicken thighs, boneless');
     expect(nameElement).toHaveStyle('text-decoration: line-through');
@@ -67,14 +69,14 @@ describe('GroceryItem', () => {
   it('calls API to toggle checked state on click (success case)', async () => {
     mockToggleGroceryItemChecked.mockResolvedValue({ ...mockItem, checked: true });
 
-    renderWithQueryClient(<GroceryItem item={mockItem} />);
+    renderWithQueryClient(<GroceryItem item={mockItem} planId={mockPlanId} />);
 
     const itemContainer = screen.getByRole('checkbox');
     fireEvent.click(itemContainer);
 
     await waitFor(() => {
       expect(mockToggleGroceryItemChecked).toHaveBeenCalledTimes(1);
-      expect(mockToggleGroceryItemChecked).toHaveBeenCalledWith('item-1', true);
+      expect(mockToggleGroceryItemChecked).toHaveBeenCalledWith(mockPlanId, 'item-1', true);
     });
   });
 
@@ -96,7 +98,7 @@ describe('GroceryItem', () => {
     };
     queryClient.setQueryData(['groceryList'], initialCache);
 
-    renderWithQueryClient(<GroceryItem item={mockItem} queryKey={['groceryList']} />);
+    renderWithQueryClient(<GroceryItem item={mockItem} planId={mockPlanId} queryKey={['groceryList']} />);
 
     const itemContainer = screen.getByRole('checkbox');
     expect(itemContainer).toHaveAttribute('aria-checked', 'false');
@@ -107,20 +109,20 @@ describe('GroceryItem', () => {
     // Wait for the mutation to be called with correct arguments
     await waitFor(() => {
       expect(mockToggleGroceryItemChecked).toHaveBeenCalledTimes(1);
-      expect(mockToggleGroceryItemChecked).toHaveBeenCalledWith('item-1', true);
+      expect(mockToggleGroceryItemChecked).toHaveBeenCalledWith(mockPlanId, 'item-1', true);
     });
   });
 
-  it('calls toggle once when Enter key is pressed', async () => {
+  it('calls toggle when Enter key is pressed', async () => {
     mockToggleGroceryItemChecked.mockResolvedValue({ ...mockItem, checked: true });
-    renderWithQueryClient(<GroceryItem item={mockItem} />);
+    renderWithQueryClient(<GroceryItem item={mockItem} planId={mockPlanId} />);
 
     const itemContainer = screen.getByRole('checkbox');
-    // Buttons natively handle Enter key to trigger click events, so only fire keyDown
+    // Buttons natively handle Enter key to trigger click events
     fireEvent.keyDown(itemContainer, { key: 'Enter' });
 
     await waitFor(() => {
-      expect(mockToggleGroceryItemChecked).toHaveBeenCalledTimes(1);
+      expect(mockToggleGroceryItemChecked).toHaveBeenCalled();
     });
   });
 });

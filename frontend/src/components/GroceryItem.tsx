@@ -12,17 +12,19 @@ export interface GroceryItemData {
 
 interface GroceryItemProps {
   item: GroceryItemData;
+  planId?: string;  // Add planId prop
   queryKey?: string[];
   onToggle?: (id: string) => void;
 }
 
-const GroceryItem: React.FC<GroceryItemProps> = ({ item, queryKey = ['groceryList'], onToggle }) => {
+const GroceryItem: React.FC<GroceryItemProps> = ({ item, planId, queryKey = ['groceryList'], onToggle }) => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: async () => {
       const newChecked = !item.checked;
-      return toggleGroceryItemChecked(item.id, newChecked);
+      // Pass planId to the API function
+      return toggleGroceryItemChecked(planId!, item.id, newChecked);
     },
     onMutate: async () => {
       // Cancel any outgoing refetches to avoid overwriting optimistic update
@@ -97,6 +99,7 @@ const GroceryItem: React.FC<GroceryItemProps> = ({ item, queryKey = ['groceryLis
       onClick={handleToggle}
       role="checkbox"
       aria-checked={item.checked}
+      data-testid="grocery-checkbox"
       tabIndex={0}
     >
       {/* Checkbox with 44px tap target */}

@@ -7,6 +7,7 @@ interface CategorySectionProps {
   count: number;
   color: string;
   items: GroceryItemData[];
+  planId?: string;  // Add planId prop
   onToggleItem: (id: string) => void;
 }
 
@@ -15,6 +16,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
   count,
   color,
   items,
+  planId,  // Destructure planId
   onToggleItem,
 }) => {
   return (
@@ -37,7 +39,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({
       {/* Items list */}
       <div className="bg-[var(--color-surface)] rounded-[var(--radius-card-lg)] border border-[var(--color-border)] overflow-hidden">
         {items.map((item) => (
-          <GroceryItem key={item.id} item={item} onToggle={onToggleItem} />
+          <GroceryItem key={item.id} item={item} planId={planId} onToggle={onToggleItem} />
         ))}
       </div>
     </div>

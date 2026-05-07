@@ -78,9 +78,9 @@ const GroceryList: React.FC = () => {
       };
     });
 
-    // API call
+    // API call - pass planId
     try {
-      await updateGroceryItem(itemId, { checked: newChecked });
+      await updateGroceryItem(planId!, itemId, { checked: newChecked });
     } catch (err) {
       console.error('Failed to update item:', err);
       // Revert on error
@@ -100,7 +100,7 @@ const GroceryList: React.FC = () => {
         };
       });
     }
-  }, [findItem]);
+  }, [findItem, planId]);
 
   // Move pantry item to main list
   const handleMovePantryItem = useCallback(async (itemId: string) => {
@@ -137,13 +137,13 @@ const GroceryList: React.FC = () => {
       };
     });
 
-    // API call
+    // API call - pass planId
     try {
-      await updateGroceryItem(itemId, { is_pantry_chip: false });
+      await updateGroceryItem(planId!, itemId, { is_pantry_chip: false });
     } catch (err) {
       console.error('Failed to move pantry item:', err);
     }
-  }, []);
+  }, [planId]);
 
   // Filter and search logic
   const filteredCategories = useMemo(() => {
@@ -305,6 +305,7 @@ const GroceryList: React.FC = () => {
             count={cat.count}
             color={getCategoryColor(cat.title)}
             items={cat.items}
+            planId={planId}  // Pass planId to CategorySection
             onToggleItem={handleToggleItem}
           />
         ))}

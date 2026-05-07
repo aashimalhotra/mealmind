@@ -17,6 +17,9 @@ vi.mock('react-router-dom', async () => {
 vi.mock('../../api/grocery', () => ({
   getGroceryList: vi.fn(),
   updateGroceryItem: vi.fn(),
+  toggleItemChecked: vi.fn(),
+  togglePantryStatus: vi.fn(),
+  toggleGroceryItemChecked: vi.fn(),
 }));
 
 // Setup React Query test client
@@ -155,9 +158,9 @@ describe('GroceryList Screen', () => {
     const chickenItem = screen.getByText('Chicken thighs, boneless').closest('[role="checkbox"]');
     fireEvent.click(chickenItem!);
 
-    // Assert API was called
+    // Assert API was called with planId
     await waitFor(() => {
-      expect(groceryApi.updateGroceryItem).toHaveBeenCalledWith('item-1', { checked: true });
+      expect(groceryApi.updateGroceryItem).toHaveBeenCalledWith('plan-123', 'item-1', { checked: true });
     });
 
     // Assert visual strikethrough (since we do optimistic update)
@@ -192,9 +195,9 @@ describe('GroceryList Screen', () => {
     const pantryChip = screen.getByLabelText('Add Tandoori blend to grocery list');
     fireEvent.click(pantryChip);
 
-    // Assert API was called
+    // Assert API was called with planId
     await waitFor(() => {
-      expect(groceryApi.updateGroceryItem).toHaveBeenCalledWith('pantry-1', { is_pantry_chip: false });
+      expect(groceryApi.updateGroceryItem).toHaveBeenCalledWith('plan-123', 'pantry-1', { is_pantry_chip: false });
     });
   });
 
