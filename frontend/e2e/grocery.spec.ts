@@ -5,7 +5,7 @@ test.describe('Grocery List Visual Baseline', () => {
     // This test requires a seeded plan with grocery list
     // For now, we'll navigate to a fixture or mock the API
     
-    await page.goto('/grocery/test-plan-id');
+    await page.goto('/grocery/e2e-plan-1');
     
     // Wait for the page to load
     await page.waitForLoadState('networkidle');
@@ -17,8 +17,8 @@ test.describe('Grocery List Visual Baseline', () => {
   });
 
   // Requires seeded plan with grocery list in E2E environment
-  test.skip('grocery list items can be checked', async ({ page }) => {
-    await page.goto('/grocery/test-plan-id');
+  test('grocery list items can be checked', async ({ page }) => {
+    await page.goto('/grocery/e2e-plan-1');
     await page.waitForLoadState('networkidle');
     
     // Find first grocery item checkbox
@@ -32,8 +32,8 @@ test.describe('Grocery List Visual Baseline', () => {
   });
 
   // Requires seeded plan with grocery list in E2E environment
-  test.skip('filter tabs work correctly', async ({ page }) => {
-    await page.goto('/grocery/test-plan-id');
+  test('filter tabs work correctly', async ({ page }) => {
+    await page.goto('/grocery/e2e-plan-1');
     await page.waitForLoadState('networkidle');
     
     // Click on "Sun prep" filter
