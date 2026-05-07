@@ -335,7 +335,7 @@ async def get_current_plan(db: Session = Depends(get_db)):
             detail="No meal plan found"
         )
     
-    return plan
+    return PlanOut.model_validate(plan)
 
 
 @router.patch("/api/plans/{plan_id}", response_model=PlanOut)
