@@ -77,6 +77,13 @@ class PlanOut(BaseModel):
             return json.loads(v)
         return v
 
+    @field_validator('ai_insights', mode='before')
+    def parse_ai_insights(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
+
+
 
 class PlanUpdate(BaseModel):
     """Partial update schema for meal plans."""
