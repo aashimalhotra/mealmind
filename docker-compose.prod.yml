@@ -1,0 +1,51 @@
+version: '3.8'
+
+# Production overlay for MealMind - extends base docker-compose.yml
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  # FastAPI backend - production mode with Gunicorn
+  mealmind-api:
+    restart: unless-stopped
+    # Override dev command with production Gunicorn setup
+    command: gunicorn app.main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+    # Remove host port mapping - only accessible via internal Docker network
+    ports: []
+    # Inherit build, volumes, env_file, environment, and healthcheck from base compose
+
+  # Frontend - Nginx serving prebuilt production assets
+  mealmind-web:
+    restart: unless-stopped
+    # Remove host port mapping - only accessible via internal Docker network
+    ports: []
+    # Inherit build and depends_on from base compose
+    # Nginx already serves prebuilt frontend from Docker image
+
+  # LiteLLM proxy - production mode
+  litellm:
+    restart: unless-stopped
+    # Remove host port mapping - only accessible internally if needed
+    ports: []
+    # Inherit image, env_file, volumes, and command from base compose
+
+  # Caddy sidecar for TLS termination on Tailscale interface
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - mealmind-web
+      - mealmind-api
+    networks:
+      - default
+
+# Persistent volumes for Caddy
+volumes:
+  caddy_data:
+  caddy_config:
