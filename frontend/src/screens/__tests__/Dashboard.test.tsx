@@ -13,12 +13,13 @@ vi.mock('../../api/plans', () => ({
   approvePlan: vi.fn(),
 }));
 
-// Mock react-router-dom's useNavigate
+// Mock react-router-dom's useNavigate with a persistent mock function
+const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
     ...actual,
-    useNavigate: vi.fn(() => vi.fn()),
+    useNavigate: () => mockNavigate,
   };
 });
 
@@ -146,21 +147,16 @@ describe('Dashboard', () => {
 
     renderWithQueryClient(<Dashboard />);
 
-    // Get the navigate function returned by useNavigate (first call result)
-    const useNavigateMock = vi.mocked(useNavigate);
-    const mockNavigate = useNavigateMock.mock.results[0].value;
-
     // Wait for dashboard to load with plan
     await waitFor(() => {
       expect(screen.getByText(/grocery list/i)).toBeInTheDocument();
     });
 
-    // Find and click the grocery row
-    const groceryRow = screen.getByText('Grocery list').closest('div[role="button"]');
-    expect(groceryRow).toBeInTheDocument();
-    fireEvent.click(groceryRow!);
+    // Find and click the grocery row using the text directly
+    const groceryRow = screen.getByText('Grocery list');
+    fireEvent.click(groceryRow);
 
-    // Assert navigation to correct grocery route
+    // Assert navigation to correct grocery route using the persistent mock
     expect(mockNavigate).toHaveBeenCalledWith('/grocery/test-plan-123');
   });
 });

@@ -116,7 +116,7 @@ describe('GroceryItem', () => {
     renderWithQueryClient(<GroceryItem item={mockItem} />);
 
     const itemContainer = screen.getByRole('checkbox');
-    // Buttons natively handle Enter key to trigger click events
+    // Buttons natively handle Enter key to trigger click events, so only fire keyDown
     fireEvent.keyDown(itemContainer, { key: 'Enter' });
 
     await waitFor(() => {
