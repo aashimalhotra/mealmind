@@ -34,12 +34,8 @@ Phase 1 of MealMind MVP has been completed and merged to main. This release incl
 ## Testing Results
 
 ### Backend Tests
-**Status:** ❌ Blocked  
-**Issue:** Configuration validation error in `app/config.py`
-- Pydantic Settings validation fails due to extra fields in .env (remote_litellm_api_base, remote_litellm_api_key, ollama_api_base)
-- Pre-existing issue not introduced in this sprint
-
-**Recommendation:** Update Settings class to allow extra fields or remove unused env vars
+**Status:** ✅ Passing (83 passed, 1 skipped)  
+**Notes:** All backend tests now passing after fixing Settings class configuration.
 
 ### Frontend Tests
 **Status:** ⚠️ Partial Failure (14 passed, 14 failed)  
@@ -68,6 +64,10 @@ cd frontend && pnpm exec lighthouse http://localhost:8401 --preset=desktop --onl
 - Service worker: `sw.js` generated with runtime caching config
 - Production build: 438KB JS (134KB gzipped)
 
+## Updates (Post-Release Fixes)
+
+- **Backend Config Fix**: Fixed Settings class with `extra='ignore'` for extra .env fields, resolving the Pydantic validation error. Backend tests now pass (83 passed, 1 skipped).
+
 ## Manual Testing Not Performed
 
 Due to time constraints and environment limitations, the following were not tested:
@@ -80,10 +80,9 @@ Due to time constraints and environment limitations, the following were not test
 
 ## Known Issues
 
-1. **Backend Config Validation** - Settings class needs to handle extra env vars
-2. **Frontend Test Setup** - Some tests missing QueryClientProvider wrapper
-3. **Recipe Macros** - Placeholder macros shown in Dashboard (0 values)
-4. **Week Strip** - Hardcoded data instead of dynamic plan data
+1. **Frontend Test Setup** - Some tests missing QueryClientProvider wrapper
+2. **Recipe Macros** - Placeholder macros shown in Dashboard (0 values)
+3. **Week Strip** - Hardcoded data instead of dynamic plan data
 
 ## Deployment Notes
 
