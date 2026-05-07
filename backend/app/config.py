@@ -6,8 +6,9 @@ from pathlib import Path
 
 class Settings(BaseSettings):
     model_config = ConfigDict(
-        env_file=Path(__file__).parent.parent.parent / ".env",
-        env_file_encoding="utf-8"
+        env_file=Path(__file__).parent.parent / ".env",
+        env_file_encoding="utf-8",
+        extra='ignore'
     )
     
     DATABASE_URL: str = "sqlite:///./mealmind.db"

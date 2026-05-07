@@ -124,34 +124,26 @@ def test_meal_plan(test_db_session, test_household, test_recipes):
 def llm_response_json():
     """Return a fake LLM response that matches the expected grocery JSON schema."""
     return {
-        "categories": [
+        "items": [
             {
-                "name": "Protein",
-                "items": [
-                    {
-                        "ingredient_name": "chicken thigh",
-                        "total_quantity_g": 300,
-                        "unit_display": "300g",
-                        "recipes": [
-                            {"recipe_id": "recipe-001", "recipe_name": "Tandoori Chicken", "prep_day": "sunday", "quantity_g": 300}
-                        ],
-                        "is_pantry_chip": False,
-                    }
-                ]
+                "ingredient_name": "chicken thigh",
+                "category": "Protein",
+                "total_quantity": 300.0,
+                "unit": "g",
+                "recipes": [
+                    {"recipe_id": "recipe-001", "recipe_name": "Tandoori Chicken", "prep_day": "sunday", "quantity_g": 300}
+                ],
+                "is_pantry_chip": False,
             },
             {
-                "name": "Spices",
-                "items": [
-                    {
-                        "ingredient_name": "cumin seeds",
-                        "total_quantity_g": 5,
-                        "unit_display": "5g",
-                        "recipes": [
-                            {"recipe_id": "recipe-002", "recipe_name": "Cumin Rice", "prep_day": "sunday", "quantity_g": 5}
-                        ],
-                        "is_pantry_chip": True,
-                    }
-                ]
+                "ingredient_name": "cumin seeds",
+                "category": "Spices",
+                "total_quantity": 5.0,
+                "unit": "g",
+                "recipes": [
+                    {"recipe_id": "recipe-002", "recipe_name": "Cumin Rice", "prep_day": "sunday", "quantity_g": 5}
+                ],
+                "is_pantry_chip": True,
             }
         ]
     }
@@ -247,7 +239,7 @@ class TestGenerateGroceryList:
     @pytest.mark.asyncio
     async def test_returns_existing_list_when_present(self, test_db_session, test_meal_plan):
         """Should return existing grocery list without calling LLM."""
-        existing_list = {"categories": [{"name": "Protein", "items": []}]}
+        existing_list = {"items": []}
         test_meal_plan.grocery_list = json.dumps(existing_list)
         test_db_session.commit()
 

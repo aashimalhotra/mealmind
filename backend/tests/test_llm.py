@@ -129,9 +129,9 @@ async def test_get_llm_returns_configured_client():
     client = get_llm()
     
     assert isinstance(client, LLMClient)
-    assert client.base_url == "http://localhost:4000"  # default from settings
+    assert client.base_url == "http://localhost:4000"  # matches .env
     assert client.default_model == "mealmind-default"
-    assert client.api_key == "sk-mealmind-local-dev-only"
+    assert client.api_key == ""  # matches .env (empty)
     
     await client.close()
 

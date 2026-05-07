@@ -134,19 +134,15 @@ async def generate_grocery_list(db: Session, plan_id: str, force_regenerate: boo
         ) from e
     
     # Parse LLM response
-    if not isinstance(llm_response, dict) or "categories" not in llm_response:
+    if not isinstance(llm_response, dict) or "items" not in llm_response:
         logger.error(f"Invalid LLM response for grocery consolidation: {llm_response}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Invalid response from grocery consolidation service"
         )
     
-    # Flatten items from all categories
-    all_items = []
-    for category in llm_response.get("categories", []):
-        for item in category.get("items", []):
-            item["category"] = category["name"]  # Add category name to each item
-            all_items.append(item)
+    # Extract items from LLM response (items already have category field)
+    all_items = llm_response.get("items", [])
     
     # Add item IDs and checked status
     for item in all_items:

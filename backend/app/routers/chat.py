@@ -6,8 +6,8 @@ import json
 
 from app.schemas.chat import ChatRequest, ChatMessageResponse
 from app.prompts.chat_copilot import build_chat_copilot_prompt
-from app.database import get_db
-from app.models.chat import ChatMessage
+from app.db.session import get_db
+from app.db.models import ChatHistory as ChatMessage
 from app.llm import stream_chat as stream_llm
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])

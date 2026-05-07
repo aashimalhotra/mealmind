@@ -153,13 +153,12 @@ def test_prep_session_creation(db_session):
     db_session.add(meal_plan)
     db_session.commit()
     
-    # Create prep session
+    # Create prep session with correct fields
     prep_session = PrepSession(
-        meal_plan_id=meal_plan.id,
-        household_id=household.id,
+        id="test-prep-session-1",
+        plan_id=meal_plan.id,
         day="sunday",
-        recipe_ids=json.dumps(["recipe1", "recipe2"]),
-        steps=json.dumps([{"step": 1, "description": "Marinate chicken"}]),
+        steps_json=json.dumps([{"step": 1, "description": "Marinate chicken"}]),
         status="pending",
     )
     db_session.add(prep_session)
@@ -167,10 +166,10 @@ def test_prep_session_creation(db_session):
     
     retrieved = db_session.query(PrepSession).first()
     assert retrieved is not None
+    assert retrieved.plan_id == meal_plan.id
     assert retrieved.day == "sunday"
-    assert json.loads(retrieved.recipe_ids) == ["recipe1", "recipe2"]
-    assert retrieved.meal_plan_id == meal_plan.id
-    assert retrieved.household_id == household.id
+    assert retrieved.status == "pending"
+    assert json.loads(retrieved.steps_json) == [{"step": 1, "description": "Marinate chicken"}]
 
 
 def test_chat_history_creation(db_session):
