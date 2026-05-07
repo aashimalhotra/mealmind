@@ -22,17 +22,16 @@ def main():
     session = Session()
     
     try:
-        # Idempotent check: only seed if Recipe count <= 10
+        # Idempotent check: only seed recipes if Recipe count <= 10
         recipe_count = session.query(Recipe).count()
         if recipe_count > 10:
-            print(f"Found {recipe_count} recipes (more than 10), skipping seed.")
-            return
-        
-        print(f"Found {recipe_count} recipes, seeding test data...")
+            print(f"Found {recipe_count} recipes (more than 10), skipping recipe seed.")
+        else:
+            print(f"Found {recipe_count} recipes, seeding test data...")
         
         # Seed 8 Indian-inspired recipes (only if not already present)
         existing_e2e = session.query(Recipe).filter(Recipe.id.like('e2e-recipe-%')).first()
-        if not existing_e2e:
+        if not existing_e2e and recipe_count <= 10:
             recipes_data = [
                 {
                     'id': 'e2e-recipe-1',
@@ -201,10 +200,26 @@ def main():
                 week_start=date(2026, 5, 4),
                 status='approved',
                 plan_data=json.dumps({
-                    'monday': 'e2e-recipe-1',
-                    'tuesday': 'e2e-recipe-2',
-                    'wednesday': 'e2e-recipe-3',
-                    'thursday': 'e2e-recipe-4'
+                    'monday': {
+                        'breakfast': {'recipe_id': 'e2e-recipe-1', 'display_name': 'Tandoori Chicken'},
+                        'lunch': {'recipe_id': 'e2e-recipe-2', 'display_name': 'Dal Tadka'},
+                        'dinner': {'recipe_id': 'e2e-recipe-3', 'display_name': 'Palak Paneer'}
+                    },
+                    'tuesday': {
+                        'breakfast': {'recipe_id': 'e2e-recipe-4', 'display_name': 'Chicken Biryani'},
+                        'lunch': {'recipe_id': 'e2e-recipe-5', 'display_name': 'Chana Masala'},
+                        'dinner': {'recipe_id': 'e2e-recipe-6', 'display_name': 'Aloo Gobi'}
+                    },
+                    'wednesday': {
+                        'breakfast': {'recipe_id': 'e2e-recipe-7', 'display_name': 'Naan'},
+                        'lunch': {'recipe_id': 'e2e-recipe-8', 'display_name': 'Gulab Jamun'},
+                        'dinner': {'recipe_id': 'e2e-recipe-1', 'display_name': 'Tandoori Chicken'}
+                    },
+                    'thursday': {
+                        'breakfast': {'recipe_id': 'e2e-recipe-2', 'display_name': 'Dal Tadka'},
+                        'lunch': {'recipe_id': 'e2e-recipe-3', 'display_name': 'Palak Paneer'},
+                        'dinner': {'recipe_id': 'e2e-recipe-4', 'display_name': 'Chicken Biryani'}
+                    }
                 }),
                 grocery_list=json.dumps({
                     'chicken': '1kg',
