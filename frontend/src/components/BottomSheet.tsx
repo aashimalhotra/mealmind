@@ -60,7 +60,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   // Handle drag end to snap to nearest position or dismiss
   const handleDragEnd = useCallback(
     (
-      event: MouseEvent | TouchEvent | PointerEvent,
+      _event: MouseEvent | TouchEvent | PointerEvent,
       info: { velocity: { y: number }; point: { y: number } }
     ) => {
       // Swipe down to dismiss: if velocity is downward and strong enough

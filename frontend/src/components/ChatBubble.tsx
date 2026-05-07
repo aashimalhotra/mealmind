@@ -1,5 +1,6 @@
 import React from 'react';
-import { parseRecipeMarkers, ContentSegment } from '../lib/parseRecipeMarkers';
+import { parseRecipeMarkers } from '../lib/parseRecipeMarkers';
+import type { ContentSegment } from '../lib/parseRecipeMarkers';
 import InlineRecipeCard from './InlineRecipeCard';
 
 export interface ChatMessage {

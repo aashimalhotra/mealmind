@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ActionButton } from '../lib/parseRecipeMarkers';
+import type { ActionButton } from '../lib/parseRecipeMarkers';
 
 export interface ChatMessage {
   id: string;

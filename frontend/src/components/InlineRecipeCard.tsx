@@ -1,5 +1,5 @@
 import React from 'react';
-import { RecipeSuggestion, ActionButton } from '../lib/parseRecipeMarkers';
+import type { RecipeSuggestion, ActionButton } from '../lib/parseRecipeMarkers';
 
 interface InlineRecipeCardProps {
   recipe: RecipeSuggestion;
