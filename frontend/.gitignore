@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 
 test-results
+e2e-screenshots
 
 # Node
 node_modules/
