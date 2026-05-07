@@ -71,6 +71,12 @@ class PlanOut(BaseModel):
             return json.loads(v)
         return v
 
+    @field_validator('grocery_list', mode='before')
+    def parse_grocery_list(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
+
 
 class PlanUpdate(BaseModel):
     """Partial update schema for meal plans."""
