@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import MacroRingRow from '../components/MacroRingRow';
@@ -9,8 +9,10 @@ import AIInsightCard from '../components/AIInsightCard';
 import PersonToggle from '../components/PersonToggle';
 import { useCurrentPlan } from '../hooks/useCurrentPlan';
 import { useTodaysPrepSession } from '../hooks/useTodaysPrepSession';
-import { generatePlan, getPlanInsight, PlanInsight } from '../api/plans';
+import { generatePlan, getPlanInsight } from '../api/plans';
+import type { PlanInsight } from '../api/plans';
 import { useChatStore } from '../stores/chatStore';
+import { isInstallAvailable, onInstallAvailable, promptInstall } from '../pwaInstall';
 
 // Helper to get today's weekday (lowercase, e.g., 'monday')
 function getTodayWeekday(): string {
@@ -44,6 +46,23 @@ const Dashboard: React.FC = () => {
   const [selectedPerson, setSelectedPerson] = useState<1500 | 1800>(1500);
   const [genStage, setGenStage] = useState<string | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
+  const [showInstallButton, setShowInstallButton] = useState(isInstallAvailable());
+  
+  // Listen for install availability
+  useEffect(() => {
+    const checkInstall = () => setShowInstallButton(isInstallAvailable());
+    onInstallAvailable(checkInstall);
+    // Initial check
+    checkInstall();
+  }, []);
+
+  // Handle install button click
+  const handleInstall = async () => {
+    const result = await promptInstall();
+    if (result) {
+      setShowInstallButton(false);
+    }
+  };
   
   const { data: plan, isLoading, isError, error, refetch } = useCurrentPlan();
   const todayWeekday = getTodayWeekday();
@@ -55,7 +74,7 @@ const Dashboard: React.FC = () => {
   const setFabPulsing = useChatStore((state) => state.setFabPulsing);
 
   // Fetch plan insight
-  const { data: insight, isLoading: insightLoading, isError: insightError } = useQuery<PlanInsight, Error>({
+  const { data: insight, isLoading: insightLoading } = useQuery<PlanInsight, Error>({
     queryKey: ['planInsight', plan?.id],
     queryFn: () => getPlanInsight(plan!.id),
     enabled: !!plan?.id,
@@ -306,8 +325,24 @@ const Dashboard: React.FC = () => {
               {greeting()}
             </p>
           </div>
-          <div className="w-10 h-10 rounded-full bg-[#C4956A] flex items-center justify-center font-medium text-sm text-text-primary">
-            {userInitials}
+          <div className="flex items-center gap-2">
+            {showInstallButton && (
+              <button
+                onClick={handleInstall}
+                className="px-3 py-1.5 text-sm font-medium text-white bg-primary rounded-lg hover:opacity-90 transition-opacity flex items-center gap-1"
+                title="Install MealMind app"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Install
+              </button>
+            )}
+            <div className="w-10 h-10 rounded-full bg-[#C4956A] flex items-center justify-center font-medium text-sm text-text-primary">
+              {userInitials}
+            </div>
           </div>
         </div>
         <div className="mb-4">
