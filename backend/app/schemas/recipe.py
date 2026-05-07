@@ -1,5 +1,6 @@
+import json
 from typing import List, Optional, Literal
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 class Ingredient(BaseModel):
@@ -61,6 +62,27 @@ class RecipeOut(BaseModel):
     carbs_g: Optional[float] = None
     fat_g: Optional[float] = None
     veggie_servings: Optional[float] = None
+
+    @field_validator('ingredients', mode='before')
+    @classmethod
+    def parse_ingredients(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
+
+    @field_validator('prep_steps', mode='before')
+    @classmethod
+    def parse_prep_steps(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
+
+    @field_validator('serving_instructions', mode='before')
+    @classmethod
+    def parse_serving_instructions(cls, v):
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
 
     model_config = ConfigDict(from_attributes=True)
 
