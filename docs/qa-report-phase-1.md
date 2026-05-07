@@ -38,13 +38,13 @@ Phase 1 of MealMind MVP has been completed and merged to main. This release incl
 **Notes:** All backend tests now passing after fixing Settings class configuration.
 
 ### Frontend Tests
-**Status:** ⚠️ Partial Failure (73 passed, 6 failed)  
+**Status:** ⚠️ Partial Failure (81 passed, 1 failed)  
 **Issues:**
-- PrepProgressBar test failures
-- useBackgroundTimers test failures
-- GroceryItem optimistic update test failures
+- GroceryItem "calls toggle once when Enter key is pressed" - mock called twice (expected once)
+- Tried 10+ subagent attempts to fix, issue persists
+- Root cause: `mockToggleGroceryItemChecked` is called twice when `fireEvent.click()` fires once
 
-**Passing Tests:** 73 tests passing
+**Passing Tests:** 81 tests passing (out of 82 total)
 
 ### E2E Playwright Tests
 **Status:** ✅ Test File Created  
@@ -68,7 +68,8 @@ cd frontend && pnpm exec lighthouse http://localhost:8401 --preset=desktop --onl
 ## Updates (Post-Release Fixes)
 
 - **Backend Config Fix**: Fixed Settings class with `extra='ignore'` for extra .env fields, resolving the Pydantic validation error. Backend tests now pass (83 passed, 1 skipped).
-- **Frontend Test Fix**: Added QueryClientProvider wrapper to test files (GroceryList.test.tsx, CategorySection.test.tsx, PrepGuide.test.tsx, Dashboard.test.tsx) fixing React Query hook errors. Frontend tests now at 73 passed, 6 failed (reduced from 14 failures).
+- **Frontend Test Fixes**: Fixed PrepProgressBar and useBackgroundTimers tests. Fixed Dashboard navigation test. Frontend tests now at 81 passed, 1 failed (reduced from 14 failures).
+- **Remaining Issue**: GroceryItem "calls toggle once when Enter key is pressed" - `mockToggleGroceryItemChecked` is called twice when `fireEvent.click()` fires once. Tried 10+ subagent attempts to fix, issue persists. Likely related to React Query mutation behavior or jsdom event handling.
 
 ## Manual Testing Not Performed
 
