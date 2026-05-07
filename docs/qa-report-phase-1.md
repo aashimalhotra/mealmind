@@ -67,6 +67,7 @@ cd frontend && pnpm exec lighthouse http://localhost:8401 --preset=desktop --onl
 ## Updates (Post-Release Fixes)
 
 - **Backend Config Fix**: Fixed Settings class with `extra='ignore'` for extra .env fields, resolving the Pydantic validation error. Backend tests now pass (83 passed, 1 skipped).
+- **Frontend Test Fix**: Added QueryClientProvider wrapper to test files (GroceryList.test.tsx, CategorySection.test.tsx, PrepGuide.test.tsx, Dashboard.test.tsx) fixing React Query hook errors. Reduced failing frontend tests from 14 to 6.
 
 ## Manual Testing Not Performed
 
