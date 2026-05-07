@@ -68,6 +68,9 @@ class RecipeOut(BaseModel):
     def parse_ingredients(cls, v):
         if isinstance(v, str):
             return json.loads(v)
+        if isinstance(v, dict):
+            # If it's a dict, convert to list by extracting values
+            return list(v.values())
         return v
 
     @field_validator('prep_steps', mode='before')
@@ -75,6 +78,9 @@ class RecipeOut(BaseModel):
     def parse_prep_steps(cls, v):
         if isinstance(v, str):
             return json.loads(v)
+        if isinstance(v, dict):
+            # If it's a dict, convert to list by extracting values
+            return list(v.values())
         return v
 
     @field_validator('serving_instructions', mode='before')
@@ -82,6 +88,9 @@ class RecipeOut(BaseModel):
     def parse_serving_instructions(cls, v):
         if isinstance(v, str):
             return json.loads(v)
+        if isinstance(v, dict):
+            # If it's a dict like {'note': 'Serve...'}, extract values to list
+            return list(v.values())
         return v
 
     model_config = ConfigDict(from_attributes=True)
