@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import GroceryList from '../GroceryList';
 import * as groceryApi from '../../api/grocery';
 
@@ -17,6 +18,26 @@ vi.mock('../../api/grocery', () => ({
   getGroceryList: vi.fn(),
   updateGroceryItem: vi.fn(),
 }));
+
+// Setup React Query test client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
+
+// Custom render with providers
+const renderWithProviders = (ui: React.ReactElement) => {
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        {ui}
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
 const mockGroceryData = {
   plan_id: 'plan-123',
@@ -103,16 +124,13 @@ const mockGroceryData = {
 describe('GroceryList Screen', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queryClient.clear();
     (groceryApi.getGroceryList as vi.Mock).mockResolvedValue(mockGroceryData);
     (groceryApi.updateGroceryItem as vi.Mock).mockResolvedValue({});
   });
 
   it('renders grocery list with fixture data', async () => {
-    render(
-      <BrowserRouter>
-        <GroceryList />
-      </BrowserRouter>
-    );
+    renderWithProviders(<GroceryList />);
 
     // Wait for data to load
     await waitFor(() => {
@@ -127,11 +145,7 @@ describe('GroceryList Screen', () => {
   });
 
   it('toggles checkbox and calls API', async () => {
-    render(
-      <BrowserRouter>
-        <GroceryList />
-      </BrowserRouter>
-    );
+    renderWithProviders(<GroceryList />);
 
     await waitFor(() => {
       expect(screen.getByText('Chicken thighs, boneless')).toBeInTheDocument();
@@ -151,11 +165,7 @@ describe('GroceryList Screen', () => {
   });
 
   it('filters items when filter tab is clicked', async () => {
-    render(
-      <BrowserRouter>
-        <GroceryList />
-      </BrowserRouter>
-    );
+    renderWithProviders(<GroceryList />);
 
     await waitFor(() => {
       expect(screen.getByText('Chicken thighs, boneless')).toBeInTheDocument();
@@ -172,11 +182,7 @@ describe('GroceryList Screen', () => {
   });
 
   it('moves pantry chip to main list when clicked', async () => {
-    render(
-      <BrowserRouter>
-        <GroceryList />
-      </BrowserRouter>
-    );
+    renderWithProviders(<GroceryList />);
 
     await waitFor(() => {
       expect(screen.getByText('Tandoori blend')).toBeInTheDocument();
@@ -193,11 +199,7 @@ describe('GroceryList Screen', () => {
   });
 
   it('searches items by name', async () => {
-    render(
-      <BrowserRouter>
-        <GroceryList />
-      </BrowserRouter>
-    );
+    renderWithProviders(<GroceryList />);
 
     await waitFor(() => {
       expect(screen.getByText('Chicken thighs, boneless')).toBeInTheDocument();

@@ -6,10 +6,10 @@ import PrepGuide from '../PrepGuide';
 import { getPrepSession, completePrepStep } from '../../api/prep';
 
 // Mock API functions
-jest.mock('../../api/prep');
+vi.mock('../../api/prep');
 
-const mockGetPrepSession = getPrepSession as jest.MockedFunction<typeof getPrepSession>;
-const mockCompletePrepStep = completePrepStep as jest.MockedFunction<typeof completePrepStep>;
+const mockGetPrepSession = getPrepSession as vi.MockedFunction<typeof getPrepSession>;
+const mockCompletePrepStep = completePrepStep as vi.MockedFunction<typeof completePrepStep>;
 
 describe('PrepGuide', () => {
   const queryClient = new QueryClient({
@@ -57,7 +57,7 @@ describe('PrepGuide', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockGetPrepSession.mockResolvedValue(mockSession);
   });
 
@@ -99,7 +99,7 @@ describe('PrepGuide', () => {
       expect(screen.getByText('Marinate chicken and refrigerate')).toBeInTheDocument();
     });
 
-    const nextButton = screen.getByText('Done');
+    const nextButton = screen.getByText('Next');
     await user.click(nextButton);
 
     await waitFor(() => {

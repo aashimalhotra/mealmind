@@ -1,6 +1,25 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CategorySection from '../CategorySection';
 import GroceryItem, { GroceryItemData } from '../GroceryItem';
+
+// Setup React Query test client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
+
+// Custom render with providers
+const renderWithProviders = (ui: React.ReactElement) => {
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {ui}
+    </QueryClientProvider>
+  );
+};
 
 describe('CategorySection', () => {
   const mockItems: GroceryItemData[] = [
@@ -11,11 +30,13 @@ describe('CategorySection', () => {
   const mockOnToggleItem = vi.fn();
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    queryClient.clear();
     mockOnToggleItem.mockClear();
   });
 
   it('renders category header with correct details', () => {
-    render(
+    renderWithProviders(
       <CategorySection
         title="Protein"
         count={2}
@@ -30,7 +51,7 @@ describe('CategorySection', () => {
   });
 
   it('renders all items in the category', () => {
-    render(
+    renderWithProviders(
       <CategorySection
         title="Protein"
         count={2}
@@ -45,7 +66,7 @@ describe('CategorySection', () => {
   });
 
   it('calls onToggleItem when an item is clicked', () => {
-    render(
+    renderWithProviders(
       <CategorySection
         title="Protein"
         count={2}
