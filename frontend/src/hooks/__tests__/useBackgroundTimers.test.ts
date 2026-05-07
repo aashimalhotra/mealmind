@@ -23,9 +23,9 @@ describe('useBackgroundTimers', () => {
     act(() => {
       result.current.addTimer({
         id: '1',
-        label: 'Chicken marinating',
-        recipeColor: '#C45B28',
-        startedAtStep: 1,
+        step_title: 'Chicken marinating',
+        dish_color: '#C45B28',
+        started_at_step: 1,
         durationSec: 1800, // 30 min
         startTimestamp: Date.now(),
       });
@@ -42,9 +42,9 @@ describe('useBackgroundTimers', () => {
     act(() => {
       result.current.addTimer({
         id: '1',
-        label: 'Chicken marinating',
-        recipeColor: '#C45B28',
-        startedAtStep: 1,
+        step_title: 'Chicken marinating',
+        dish_color: '#C45B28',
+        started_at_step: 1,
         durationSec: 1800,
         startTimestamp: Date.now(),
       });
@@ -66,9 +66,9 @@ describe('useBackgroundTimers', () => {
       // Timer 1: started 1000s ago, duration 1800s → remaining 800s
       result.current.addTimer({
         id: '1',
-        label: 'Timer 1',
-        recipeColor: '#C45B28',
-        startedAtStep: 1,
+        step_title: 'Timer 1',
+        dish_color: '#C45B28',
+        started_at_step: 1,
         durationSec: 1800,
         startTimestamp: Date.now() - 1000 * 1000,
       });
@@ -76,9 +76,9 @@ describe('useBackgroundTimers', () => {
       // Timer 2: started 100s ago, duration 1800s → remaining 1700s
       result.current.addTimer({
         id: '2',
-        label: 'Timer 2',
-        recipeColor: '#C49B28',
-        startedAtStep: 2,
+        step_title: 'Timer 2',
+        dish_color: '#C49B28',
+        started_at_step: 2,
         durationSec: 1800,
         startTimestamp: Date.now() - 100 * 1000,
       });
@@ -86,9 +86,9 @@ describe('useBackgroundTimers', () => {
       // Timer 3: started 500s ago, duration 1800s → remaining 1300s
       result.current.addTimer({
         id: '3',
-        label: 'Timer 3',
-        recipeColor: '#4A8C5C',
-        startedAtStep: 3,
+        step_title: 'Timer 3',
+        dish_color: '#4A8C5C',
+        started_at_step: 3,
         durationSec: 1800,
         startTimestamp: Date.now() - 500 * 1000,
       });
@@ -113,9 +113,9 @@ describe('useBackgroundTimers', () => {
       // Timer with duration 60s, started 60s ago → remaining 0
       result.current.addTimer({
         id: '1',
-        label: 'Short timer',
-        recipeColor: '#C45B28',
-        startedAtStep: 1,
+        step_title: 'Short timer',
+        dish_color: '#C45B28',
+        started_at_step: 1,
         durationSec: 60,
         startTimestamp: Date.now() - 60 * 1000,
       });

@@ -79,8 +79,10 @@ describe('GroceryItem', () => {
   });
 
   it('optimistically updates cache and rolls back on 500 error', async () => {
-    // Mock a 500 error response
-    mockToggleGroceryItemChecked.mockRejectedValue(new Error('500 Server Error'));
+    // Mock a 500 error response with a small delay to allow capturing optimistic update
+    mockToggleGroceryItemChecked.mockImplementationOnce(
+      () => new Promise((_, reject) => setTimeout(() => reject(new Error('500 Server Error')), 50))
+    );
 
     // Pre-populate query cache with initial data
     const initialCache = {
@@ -104,7 +106,7 @@ describe('GroceryItem', () => {
     // Click to toggle
     fireEvent.click(itemContainer);
 
-    // Wait for optimistic update in cache
+    // Wait for optimistic update in cache (should happen quickly)
     await waitFor(() => {
       const optimisticCache = queryClient.getQueryData(['groceryList']) as any;
       expect(optimisticCache.categories[0].items[0].checked).toBe(true);

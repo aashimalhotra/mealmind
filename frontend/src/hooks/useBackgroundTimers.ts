@@ -1,40 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { BackgroundTimer } from '../components/BackgroundTimerList';
 
 interface UseBackgroundTimersReturn {
   timers: BackgroundTimer[];
-  addTimer: (timer: Omit<BackgroundTimer, 'remaining_seconds'> & { duration_min: number }) => void;
+  addTimer: (timer: Omit<BackgroundTimer, 'remaining_seconds'> & { durationSec: number; startTimestamp: number }) => void;
   removeTimer: (id: string) => void;
+  getTimersWithRemaining: (currentTime: number) => (BackgroundTimer & { remainingSec: number })[];
 }
 
 export const useBackgroundTimers = (): UseBackgroundTimersReturn => {
   const [timers, setTimers] = useState<BackgroundTimer[]>([]);
 
-  // Update timers every second
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTimers((prev) =>
-        prev
-          .map((timer) => ({
-            ...timer,
-            remaining_seconds: Math.max(0, timer.remaining_seconds - 1),
-          }))
-          .filter((timer) => timer.remaining_seconds > 0)
-      );
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   const addTimer = useCallback(
-    (timer: Omit<BackgroundTimer, 'remaining_seconds'> & { duration_min: number }) => {
+    (timer: Omit<BackgroundTimer, 'remaining_seconds'> & { durationSec: number; startTimestamp: number }) => {
       setTimers((prev) => [
         ...prev,
         {
           ...timer,
-          remaining_seconds: timer.duration_min * 60,
-          total_seconds: timer.duration_min * 60,
-        },
+          remaining_seconds: timer.durationSec,
+          total_seconds: timer.durationSec,
+        } as BackgroundTimer,
       ]);
     },
     []
@@ -44,5 +29,29 @@ export const useBackgroundTimers = (): UseBackgroundTimersReturn => {
     setTimers((prev) => prev.filter((timer) => timer.id !== id));
   }, []);
 
-  return { timers, addTimer, removeTimer };
+  const getTimersWithRemaining = useCallback(
+    (currentTime: number) => {
+      const timersWithRemaining = timers
+        .map((timer) => {
+          const timerWithMeta = timer as BackgroundTimer & { startTimestamp?: number; durationSec?: number };
+          const startTimestamp = timerWithMeta.startTimestamp;
+          const durationSec = timerWithMeta.durationSec || timer.total_seconds;
+
+          if (startTimestamp !== undefined) {
+            const elapsedSec = Math.floor((currentTime - startTimestamp) / 1000);
+            const remainingSec = Math.max(0, durationSec - elapsedSec);
+            return { ...timer, remainingSec };
+          } else {
+            // Fallback to stored remaining_seconds
+            return { ...timer, remainingSec: timer.remaining_seconds };
+          }
+        })
+        .sort((a, b) => a.remainingSec - b.remainingSec);
+
+      return timersWithRemaining;
+    },
+    [timers]
+  );
+
+  return { timers, addTimer, removeTimer, getTimersWithRemaining };
 };

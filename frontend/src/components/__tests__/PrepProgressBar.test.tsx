@@ -1,28 +1,40 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import PrepProgressBar from '../PrepProgressBar';
 
 describe('PrepProgressBar', () => {
-  test('renders correct segments for 8 steps with 3 completed and 4th step active', () => {
-    // Create 8 test steps: first 3 completed, 4th (index 3) active, rest upcoming
-    const testSteps = Array.from({ length: 8 }, (_, i) => ({
-      recipe_id: `recipe-${i + 1}`,
-      completed: i < 3,
-      active: i === 3,
-    }));
+  test('renders progress bar with correct completed and total steps', () => {
+    render(<PrepProgressBar completedSteps={3} totalSteps={8} />);
 
-    render(<PrepProgressBar steps={testSteps} currentStepIndex={3} />);
+    // Check that the progress text shows correct values
+    expect(screen.getByText('3 / 8')).toBeInTheDocument();
 
-    // Assert 3 fully filled (completed) segments
-    const completedSegments = document.querySelectorAll('[aria-valuenow="100"]');
-    expect(completedSegments).toHaveLength(3);
+    // Check that the progress bar has correct width style (3/8 = 37.5%)
+    const progressBar = document.querySelector('.bg-accent');
+    expect(progressBar).toHaveStyle('width: 37.5%');
+  });
 
-    // Assert 1 half-filled (active) segment
-    const activeSegments = document.querySelectorAll('[aria-valuenow="50"]');
-    expect(activeSegments).toHaveLength(1);
+  test('renders empty progress bar when no steps completed', () => {
+    render(<PrepProgressBar completedSteps={0} totalSteps={8} />);
 
-    // Assert 4 faded (upcoming) segments
-    const upcomingSegments = document.querySelectorAll('[aria-valuenow="0"]');
-    expect(upcomingSegments).toHaveLength(4);
+    expect(screen.getByText('0 / 8')).toBeInTheDocument();
+    const progressBar = document.querySelector('.bg-accent');
+    expect(progressBar).toHaveStyle('width: 0%');
+  });
+
+  test('renders full progress bar when all steps completed', () => {
+    render(<PrepProgressBar completedSteps={8} totalSteps={8} />);
+
+    expect(screen.getByText('8 / 8')).toBeInTheDocument();
+    const progressBar = document.querySelector('.bg-accent');
+    expect(progressBar).toHaveStyle('width: 100%');
+  });
+
+  test('renders nothing when totalSteps is 0', () => {
+    render(<PrepProgressBar completedSteps={0} totalSteps={0} />);
+
+    expect(screen.getByText('0 / 0')).toBeInTheDocument();
+    const progressBar = document.querySelector('.bg-accent');
+    expect(progressBar).toHaveStyle('width: 0%');
   });
 });

@@ -85,6 +85,13 @@ const GroceryItem: React.FC<GroceryItemProps> = ({ item, queryKey = ['groceryLis
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleToggle();
+    }
+  };
+
   const nameColor = item.checked ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)';
   const subtitleColor = item.checked ? 'var(--color-text-placeholder)' : 'var(--color-text-tertiary)';
   const quantityColor = item.checked ? 'var(--color-text-placeholder)' : 'var(--color-text-primary)';
@@ -95,6 +102,7 @@ const GroceryItem: React.FC<GroceryItemProps> = ({ item, queryKey = ['groceryLis
       type="button"
       className="w-full flex items-center gap-[var(--space-xl)] px-[var(--space-3xl)] py-[var(--space-3xl)] border-b border-[var(--color-border-light)] last:border-b-0 cursor-pointer bg-transparent border-0 p-0 text-left"
       onClick={handleToggle}
+      onKeyDown={handleKeyDown}
       role="checkbox"
       aria-checked={item.checked}
       tabIndex={0}
