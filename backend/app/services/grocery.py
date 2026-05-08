@@ -60,7 +60,24 @@ def _get_plan_ingredients(db: Session, meal_plan: MealPlan) -> List[Dict[str, An
             ingredients = json.loads(ingredients)
         
         for ing in ingredients:
-            name = ing["name"]
+            # Handle case where ing might be a string (bad data) or dict
+            if isinstance(ing, str):
+                # Try to parse as JSON first (in case it's a JSON string)
+                try:
+                    ing = json.loads(ing)
+                except (json.JSONDecodeError, TypeError):
+                    # If not JSON, treat as ingredient name with no quantity info
+                    logger.warning(f"Skipping invalid ingredient format: {ing}")
+                    continue
+
+            if not isinstance(ing, dict):
+                logger.warning(f"Skipping invalid ingredient type: {type(ing)}")
+                continue
+
+            name = ing.get("name", "")
+            if not name:
+                continue
+
             unit = ing.get("unit", "g")
             # Get quantity based on calorie target
             qty = ing.get(use_quantity_key, ing.get("quantity_1500", 0))
