@@ -29,7 +29,7 @@ export function useTodaysPrepSession(planId: string | undefined): UseTodaysPrepS
   const profileQuery = useProfile();
 
   // Check if today is a prep day
-  const isPrepDay = profileQuery.data?.prep_days?.includes(todayWeekday) ?? false;
+  const isPrepDay = profileQuery.data?.household?.prep_days?.includes(todayWeekday) ?? false;
 
   // Query for today's prep session (only if it's a prep day and we have a planId)
   const sessionQuery = useQuery<PrepSession | null, Error>({
