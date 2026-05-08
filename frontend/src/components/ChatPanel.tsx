@@ -6,6 +6,7 @@ const ChatPanel: React.FC = () => {
   const { messages, addMessage, isFabPulsing, setFabPulsing } = useChatStore();
   const { sendMessage, isStreaming } = useChatStream();
   const [inputValue, setInputValue] = useState('');
+  const [isClearing, setIsClearing] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom of chat when messages update
@@ -40,8 +41,23 @@ const ChatPanel: React.FC = () => {
   };
 
   // Handle clear chat
-  const handleClearChat = () => {
-    useChatStore.setState({ messages: [] });
+  const handleClearChat = async () => {
+    setIsClearing(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8400';
+      const response = await fetch(`${API_BASE}/api/chat/history`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to clear chat history');
+      }
+      // Clear local store
+      useChatStore.setState({ messages: [] });
+    } catch (error) {
+      console.error('Failed to clear chat:', error);
+    } finally {
+      setIsClearing(false);
+    }
   };
 
   return (
@@ -61,9 +77,10 @@ const ChatPanel: React.FC = () => {
         <div className="flex gap-2">
           <button
             onClick={handleClearChat}
-            className="bg-white rounded-lg px-2.5 py-1 border border-[#E8DDD0] text-xs text-text-tertiary"
+            disabled={isClearing}
+            className="bg-white rounded-lg px-2.5 py-1 border border-[#E8DDD0] text-xs text-text-tertiary disabled:opacity-50"
           >
-            Clear
+            {isClearing ? 'Clearing...' : 'Clear'}
           </button>
           <button className="bg-white rounded-lg p-1.5 border border-[#E8DDD0]">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#8C7B6B" strokeWidth="1.2" strokeLinecap="round">
@@ -99,8 +116,9 @@ const ChatPanel: React.FC = () => {
                     ? 'bg-text-primary text-white rounded-br-sm'
                     : 'bg-white border border-[#E8DDD0] rounded-bl-sm'
                 }`}
+                data-testid={message.role === 'user' ? 'chat-message-user' : 'chat-message-assistant'}
               >
-                <p className="text-sm leading-relaxed text-text-primary">{message.content}</p>
+                <p className={`text-sm leading-relaxed ${message.role === 'user' ? 'text-white' : 'text-text-primary'}`}>{message.content}</p>
                 <p className="text-[10px] text-text-tertiary mt-1">
                   {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
@@ -145,6 +163,7 @@ const ChatPanel: React.FC = () => {
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder="Ask about meals, nutrition, cooking..."
               className="w-full text-sm text-text-primary placeholder-text-tertiary outline-none bg-transparent"
+              data-testid="chat-input"
             />
           </div>
           <button
@@ -153,6 +172,7 @@ const ChatPanel: React.FC = () => {
             className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
               inputValue.trim() && !isStreaming ? 'bg-accent-gold' : 'bg-[#E8DDD0]'
             }`}
+            data-testid="chat-send-button"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 14V4M9 4l-4 4M9 4l4 4" />

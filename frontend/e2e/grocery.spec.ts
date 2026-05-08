@@ -57,4 +57,22 @@ test.describe('Grocery List Visual Baseline', () => {
     // Verify filter is active - check for active styling
     await expect(sunPrepTab).toHaveAttribute('data-active', 'true');
   });
+
+  test('share button text is visible (light text on dark background)', async ({ page }) => {
+    await page.goto('/grocery/e2e-plan-1');
+    await page.waitForLoadState('networkidle');
+
+    // Wait for share button to load
+    const shareButton = page.locator('button', { hasText: 'Share list' });
+    await expect(shareButton).toBeVisible({ timeout: 10000 });
+
+    // Check button background color (dark-bg: #3D2E1F)
+    const buttonBg = await shareButton.evaluate(el => window.getComputedStyle(el).backgroundColor);
+    expect(buttonBg).toBe('rgb(61, 46, 31)'); // #3D2E1F in rgb
+
+    // Check share button text color (should be white/dark-text)
+    const shareText = shareButton.locator('span');
+    const textColor = await shareText.evaluate(el => window.getComputedStyle(el).color);
+    expect(textColor).toBe('rgb(255, 255, 255)'); // White
+  });
 });

@@ -366,7 +366,7 @@ const GroceryList: React.FC = () => {
             className="flex-1 bg-[var(--color-dark-bg)] rounded-[var(--radius-card-lg)] p-[var(--space-3xl)] text-center"
             onClick={handleShare}
           >
-            <span className="text-[var(--font-size-body-lg)] font-[var(--font-weight-medium)] text-[var(--color-dark-text)]">
+            <span className="text-[var(--font-size-body-lg)] font-[var(--font-weight-medium)] text-dark-text">
               Share list
             </span>
           </button>

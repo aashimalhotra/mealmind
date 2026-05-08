@@ -3,7 +3,7 @@ from typing import Optional, List
 
 class ChatRequest(BaseModel):
     message: str
-    screen: str
+    screen: Optional[str] = None
     plan_id: Optional[int] = None
 
 class ChatMessageResponse(BaseModel):

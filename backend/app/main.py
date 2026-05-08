@@ -23,6 +23,7 @@ app.include_router(recipes_router, prefix="/api/recipes", tags=["recipes"])
 app.include_router(plans_router, tags=["plans"])
 app.include_router(prep_router, prefix="/api/prep", tags=["prep"])
 app.include_router(grocery_router, tags=["grocery"])
+app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
 
 
 @app.get("/api/health")

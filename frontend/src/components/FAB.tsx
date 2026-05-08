@@ -9,6 +9,7 @@ const FAB: React.FC<FABProps> = ({ pulse = false, onClick }) => {
   return (
     <button
       onClick={onClick}
+      data-testid="chat-fab"
       className={`fixed bottom-20 left-1/2 -translate-x-1/2 w-13 h-13 rounded-full bg-accent-gold flex items-center justify-center shadow-lg z-50 transition-transform hover:scale-105 ${
         pulse ? 'animate-pulse' : ''
       }`}
