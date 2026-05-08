@@ -27,11 +27,19 @@ test.describe('Grocery List Visual Baseline', () => {
     // Find first grocery item checkbox
     const firstCheckbox = page.locator('[data-testid="grocery-checkbox"]').first();
 
+    // Ensure checkbox is unchecked before test to avoid state leakage from previous tests
+    if (await firstCheckbox.isChecked()) {
+      await firstCheckbox.click();
+      await expect(firstCheckbox).not.toBeChecked({ timeout: 5000 });
+    }
+
     // Click to check
     await firstCheckbox.click();
 
-    // Verify it's checked (should have line-through style)
-    await expect(firstCheckbox).toBeChecked();
+    // Wait for API call to complete and UI to update
+    await page.waitForLoadState('networkidle', { timeout: 5000 });
+    // Verify it's checked with extended timeout
+    await expect(firstCheckbox).toBeChecked({ timeout: 5000 });
   });
 
   // Requires seeded plan with grocery list in E2E environment

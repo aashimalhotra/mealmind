@@ -108,8 +108,9 @@ def _extract_macros_from_search_hit(hit: dict) -> dict:
     Returns:
         Dict with keys: calories, protein_g, carbs_g, fat_g
     """
-    food = hit.get("food", {})
-    nutrients = food.get("foodNutrients", []) if food else hit.get("foodNutrients", [])
+    nutrients = hit.get("foodNutrients", [])
+    if not nutrients and "food" in hit:
+        nutrients = hit["food"].get("foodNutrients", [])
     
     nutrient_map = {}
     for n in nutrients:

@@ -1,9 +1,11 @@
-"""Grocery list endpoints."""
+"""
+Grocery list endpoints.
+"""
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -41,6 +43,7 @@ async def get_grocery_list(
 async def toggle_grocery_item_checked(
     plan_id: str,
     item_id: str,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     """
@@ -48,6 +51,18 @@ async def toggle_grocery_item_checked(
     
     Item ID is a stable hash of ingredient_name + category.
     Searches through both categories and pantry_items.
+    
+    The request body can optionally contain a "checked" field to explicitly
+    set the checked status. If not provided, the status is toggled.
     """
-    grocery_list = await toggle_grocery_item(db, plan_id, item_id)
+    # Read the request body (if any)
+    checked = None
+    try:
+        body = await request.json()
+        if "checked" in body:
+            checked = body["checked"]
+    except Exception:
+        pass
+    
+    grocery_list = await toggle_grocery_item(db, plan_id, item_id, checked)
     return grocery_list

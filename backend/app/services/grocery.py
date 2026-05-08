@@ -253,9 +253,12 @@ async def generate_grocery_list(db: Session, plan_id: str, force_regenerate: boo
         if "categories" in grocery_list:
             return grocery_list
         
-        # Migrate old format to new format
+        # Migrate old format to new format and save it
         items = grocery_list.get("items", [])
-        return _transform_to_frontend_format(items, plan_id, meal_plan.week_start)
+        migrated_list = _transform_to_frontend_format(items, plan_id, meal_plan.week_start)
+        meal_plan.grocery_list = json.dumps(migrated_list)
+        db.commit()
+        return migrated_list
     
     # Generate new grocery list
     logger.info(f"Generating grocery list for plan {plan_id}")
@@ -314,14 +317,15 @@ async def generate_grocery_list(db: Session, plan_id: str, force_regenerate: boo
     return grocery_list
 
 
-async def toggle_grocery_item(db: Session, plan_id: str, item_id: str) -> Dict[str, Any]:
+async def toggle_grocery_item(db: Session, plan_id: str, item_id: str, checked: Optional[bool] = None) -> Dict[str, Any]:
     """
-    Toggle the checked status of a grocery item.
+    Toggle or update the checked status of a grocery item.
     
     Args:
         db: Database session
         plan_id: ID of the meal plan
-        item_id: ID of the item to toggle
+        item_id: ID of the item to toggle/update
+        checked: New checked status (if None, toggle the current status)
     
     Returns:
         Updated grocery list dict
