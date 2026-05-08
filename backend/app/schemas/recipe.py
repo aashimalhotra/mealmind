@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import List, Optional, Literal
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
@@ -73,12 +74,12 @@ class RecipeOut(BaseModel):
             v = list(v.values())
         if isinstance(v, list):
             # Filter out items that are not dicts (malformed data like strings)
+            logger = logging.getLogger(__name__)
             valid_items = []
             for item in v:
                 if isinstance(item, dict):
                     valid_items.append(item)
                 else:
-                    logger = logging.getLogger(__name__)
                     logger.warning(f"Skipping malformed ingredient item: {item}")
             return valid_items
         return v
