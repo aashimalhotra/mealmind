@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 from typing import Optional, List, Dict, Any
+from datetime import date
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -13,6 +14,7 @@ from app.prompts.grocery_consolidate import build_grocery_consolidate_prompt
 from app.services.llm import get_llm, LLMResponseError
 
 logger = logging.getLogger(__name__)
+
 
 def _generate_item_id(ingredient_name: str, category: str) -> str:
     """Generate a stable item ID from ingredient name and category."""
@@ -33,11 +35,20 @@ def _get_plan_ingredients(db: Session, meal_plan: MealPlan) -> List[Dict[str, An
     
     # Collect recipe IDs with multiplicity (how many times each recipe is used)
     recipe_occurrences = {}  # recipe_id -> count
+    recipe_prep_days = {}  # recipe_id -> list of prep days
+    
     for day, meals in plan_data.items():
         for slot, meal in meals.items():
             if "recipe_id" in meal and meal["recipe_id"]:
                 rid = meal["recipe_id"]
                 recipe_occurrences[rid] = recipe_occurrences.get(rid, 0) + 1
+                
+                # Track prep days for attribution
+                prep_day = meal.get("meal_type", "day-of")
+                if rid not in recipe_prep_days:
+                    recipe_prep_days[rid] = []
+                if prep_day not in recipe_prep_days[rid]:
+                    recipe_prep_days[rid].append(prep_day)
     
     if not recipe_occurrences:
         return []
@@ -53,6 +64,9 @@ def _get_plan_ingredients(db: Session, meal_plan: MealPlan) -> List[Dict[str, An
     
     # Aggregate ingredients considering recipe multiplicity
     ingredient_map = {}  # key: (name, unit)
+    # Also track recipe attribution for each ingredient
+    ingredient_recipes = {}  # key: (name, unit) -> list of {recipe_id, recipe_name, prep_day, quantity_g}
+    
     for recipe in recipes:
         occurrences = recipe_occurrences.get(recipe.id, 1)
         ingredients = recipe.ingredients
@@ -62,11 +76,9 @@ def _get_plan_ingredients(db: Session, meal_plan: MealPlan) -> List[Dict[str, An
         for ing in ingredients:
             # Handle case where ing might be a string (bad data) or dict
             if isinstance(ing, str):
-                # Try to parse as JSON first (in case it's a JSON string)
                 try:
                     ing = json.loads(ing)
                 except (json.JSONDecodeError, TypeError):
-                    # If not JSON, treat as ingredient name with no quantity info
                     logger.warning(f"Skipping invalid ingredient format: {ing}")
                     continue
 
@@ -94,9 +106,121 @@ def _get_plan_ingredients(db: Session, meal_plan: MealPlan) -> List[Dict[str, An
                     "total_quantity": 0.0,
                     "category": None  # Will be assigned by LLM
                 }
+                ingredient_recipes[key] = []
+            
             ingredient_map[key]["total_quantity"] += total_qty
+            
+            # Add recipe attribution
+            prep_days = recipe_prep_days.get(recipe.id, ["day-of"])
+            ingredient_recipes[key].append({
+                "recipe_id": recipe.id,
+                "recipe_name": recipe.display_name,
+                "prep_day": prep_days[0] if prep_days else "day-of",
+                "quantity_g": total_qty
+            })
     
-    return list(ingredient_map.values())
+    # Add recipe attribution to the ingredient data
+    result = list(ingredient_map.values())
+    for ing in result:
+        key = (ing["name"], ing["unit"])
+        ing["recipes"] = ingredient_recipes.get(key, [])
+    
+    return result
+
+
+def _format_quantity(total_quantity: float, unit: str) -> str:
+    """Format quantity for display (e.g., 600g, 2kg, 1.5L)."""
+    if total_quantity >= 1000:
+        if unit == "g":
+            return f"{total_quantity/1000}kg"
+        elif unit == "ml":
+            return f"{total_quantity/1000}L"
+        else:
+            return f"{total_quantity}{unit}"
+    else:
+        return f"{int(total_quantity) if total_quantity.is_integer() else total_quantity}{unit}"
+
+
+def _build_subtitle(recipes: List[Dict], category: str) -> str:
+    """Build subtitle from recipe attribution."""
+    if not recipes:
+        return ""
+    
+    # Get unique recipe names
+    recipe_names = list(set(r.get("recipe_name", "") for r in recipes if r.get("recipe_name")))
+    
+    if len(recipe_names) == 1:
+        return recipe_names[0]
+    elif len(recipe_names) <= 3:
+        return ", ".join(recipe_names)
+    else:
+        return f"{recipe_names[0]} + {len(recipe_names)-1} more"
+
+
+def _transform_to_frontend_format(
+    items: List[Dict[str, Any]], 
+    plan_id: str, 
+    week_start: date
+) -> Dict[str, Any]:
+    """
+    Transform grocery items into the format expected by the frontend.
+    
+    Groups items by category, separates pantry items, and formats fields.
+    
+    Returns:
+        Dict with plan_id, week_of, total_items, categories, pantry_items
+    """
+    # Separate pantry items from regular items
+    pantry_items = []
+    regular_items = []
+    
+    for item in items:
+        transformed = {
+            "id": item.get("id", _generate_item_id(item["ingredient_name"], item["category"])),
+            "name": item["ingredient_name"],
+            "subtitle": _build_subtitle(item.get("recipes", []), item.get("category", "")),
+            "quantity": _format_quantity(item.get("total_quantity_g", item.get("total_quantity", 0)), item.get("unit", "g")),
+            "checked": item.get("checked", False),
+            "is_pantry_chip": item.get("is_pantry_chip", False),
+            "category": item["category"],
+            "prep_day": item.get("recipes", [{}])[0].get("prep_day") if item.get("recipes") else None
+        }
+        
+        if transformed["is_pantry_chip"]:
+            pantry_items.append(transformed)
+        else:
+            regular_items.append(transformed)
+    
+    # Group regular items by category
+    categories_dict = {}
+    for item in regular_items:
+        cat_name = item["category"]
+        if cat_name not in categories_dict:
+            categories_dict[cat_name] = {
+                "title": cat_name,
+                "count": 0,
+                "color": "",  # Frontend sets this based on category name
+                "items": []
+            }
+        categories_dict[cat_name]["items"].append(item)
+        categories_dict[cat_name]["count"] += 1
+    
+    # Convert to list and sort by category name
+    categories = sorted(categories_dict.values(), key=lambda x: x["title"])
+    
+    # Calculate total items (non-pantry)
+    total_items = sum(cat["count"] for cat in categories)
+    
+    # Format week_of as ISO date string
+    week_of = week_start.isoformat() if week_start else date.today().isoformat()
+    
+    return {
+        "plan_id": plan_id,
+        "week_of": week_of,
+        "total_items": total_items,
+        "categories": categories,
+        "pantry_items": pantry_items
+    }
 
 
 async def generate_grocery_list(db: Session, plan_id: str, force_regenerate: bool = False) -> Dict[str, Any]:
@@ -109,7 +233,7 @@ async def generate_grocery_list(db: Session, plan_id: str, force_regenerate: boo
         force_regenerate: If True, regenerate even if grocery_list exists
     
     Returns:
-        Grocery list dict with items array
+        Grocery list dict with plan_id, week_of, total_items, categories, pantry_items
     """
     # Fetch meal plan
     meal_plan = db.query(MealPlan).filter(MealPlan.id == plan_id).first()
@@ -124,7 +248,14 @@ async def generate_grocery_list(db: Session, plan_id: str, force_regenerate: boo
         grocery_list = meal_plan.grocery_list
         if isinstance(grocery_list, str):
             grocery_list = json.loads(grocery_list)
-        return grocery_list
+        
+        # Check if the stored format is already in the new format
+        if "categories" in grocery_list:
+            return grocery_list
+        
+        # Migrate old format to new format
+        items = grocery_list.get("items", [])
+        return _transform_to_frontend_format(items, plan_id, meal_plan.week_start)
     
     # Generate new grocery list
     logger.info(f"Generating grocery list for plan {plan_id}")
@@ -132,12 +263,12 @@ async def generate_grocery_list(db: Session, plan_id: str, force_regenerate: boo
     # Get aggregated ingredients
     ingredients = _get_plan_ingredients(db, meal_plan)
     if not ingredients:
-        empty_list = {"items": []}
+        empty_list = _transform_to_frontend_format([], plan_id, meal_plan.week_start)
         meal_plan.grocery_list = json.dumps(empty_list)
         db.commit()
         return empty_list
     
-    # Call LLM to consolidate ingredients
+    # Call LLM to consolidate and categorize ingredients
     llm = get_llm()
     messages = build_grocery_consolidate_prompt(ingredients)
     
@@ -158,7 +289,8 @@ async def generate_grocery_list(db: Session, plan_id: str, force_regenerate: boo
             detail="Invalid response from grocery consolidation service"
         )
     
-    # Extract items from LLM response (items already have category field)
+    # Extract items from LLM response
+    # The LLM should return items with: ingredient_name, category, total_quantity, unit, recipes, is_pantry_chip
     all_items = llm_response.get("items", [])
     
     # Add item IDs and checked status
@@ -166,8 +298,14 @@ async def generate_grocery_list(db: Session, plan_id: str, force_regenerate: boo
         item_id = _generate_item_id(item["ingredient_name"], item["category"])
         item["id"] = item_id
         item["checked"] = False
+        # Ensure is_pantry_chip is set (LLM might not always include it)
+        if "is_pantry_chip" not in item:
+            # Default: items in certain categories are pantry items
+            pantry_categories = ["spices", "condiments", "pantry", "spices & condiments"]
+            item["is_pantry_chip"] = item.get("category", "").lower() in pantry_categories
     
-    grocery_list = {"items": all_items}
+    # Transform to frontend format
+    grocery_list = _transform_to_frontend_format(all_items, plan_id, meal_plan.week_start)
     
     # Persist to meal plan
     meal_plan.grocery_list = json.dumps(grocery_list)
@@ -208,13 +346,26 @@ async def toggle_grocery_item(db: Session, plan_id: str, item_id: str) -> Dict[s
     if isinstance(grocery_list, str):
         grocery_list = json.loads(grocery_list)
     
-    # Find and toggle the item
+    # Find and toggle the item (search in categories and pantry_items)
     found = False
-    for item in grocery_list.get("items", []):
-        if item.get("id") == item_id:
-            item["checked"] = not item.get("checked", False)
-            found = True
+    
+    # Search in categories
+    for category in grocery_list.get("categories", []):
+        for item in category.get("items", []):
+            if item.get("id") == item_id:
+                item["checked"] = not item.get("checked", False)
+                found = True
+                break
+        if found:
             break
+    
+    # If not found in categories, search in pantry_items
+    if not found:
+        for item in grocery_list.get("pantry_items", []):
+            if item.get("id") == item_id:
+                item["checked"] = not item.get("checked", False)
+                found = True
+                break
     
     if not found:
         raise HTTPException(

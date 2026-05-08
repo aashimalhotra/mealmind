@@ -312,7 +312,7 @@ def main():
                     'dinner': {'recipe_id': 'e2e-recipe-4', 'display_name': 'Chicken Biryani'}
                 }
             }),
-            grocery_list=None  # Will be generated on first access
+            grocery_list=None  # Will be generated on first API access in new format
         )
         session.add(meal_plan)
         print("Added test meal plan.")

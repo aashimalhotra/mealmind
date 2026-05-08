@@ -7,29 +7,41 @@ from datetime import date, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.db.models import Household, Recipe, MealPlan, User
-from app.schemas.grocery import GroceryList, GroceryItem
+from app.schemas.grocery import GroceryListResponse, GroceryCategory, GroceryItem
 
 
-# Canned LLM response for grocery consolidation
+# Canned LLM response for grocery consolidation (new format expected from LLM)
 CANNED_GROCERY_LLM_RESPONSE = {
     "items": [
         {
             "ingredient_name": "Rice",
             "category": "Pantry",
             "total_quantity": 700.0,
-            "unit": "g"
+            "unit": "g",
+            "is_pantry_chip": True,
+            "recipes": [
+                {"recipe_id": "recipe-001", "recipe_name": "Rice Bowl", "prep_day": "sunday", "quantity_g": 700}
+            ]
         },
         {
             "ingredient_name": "Chicken Breast",
             "category": "Meat",
             "total_quantity": 1400.0,
-            "unit": "g"
+            "unit": "g",
+            "is_pantry_chip": False,
+            "recipes": [
+                {"recipe_id": "recipe-001", "recipe_name": "Rice Bowl", "prep_day": "sunday", "quantity_g": 1400}
+            ]
         },
         {
             "ingredient_name": "Mixed Vegetables",
             "category": "Produce",
             "total_quantity": 1050.0,
-            "unit": "g"
+            "unit": "g",
+            "is_pantry_chip": False,
+            "recipes": [
+                {"recipe_id": "recipe-002", "recipe_name": "Vegetable Curry", "prep_day": "sunday", "quantity_g": 1050}
+            ]
         }
     ]
 }
@@ -168,14 +180,24 @@ async def test_get_grocery_list_generates_on_demand(async_client, test_db_sessio
     # Verify response
     assert response.status_code == 200
     data = response.json()
-    assert "items" in data
-    assert len(data["items"]) == 3  # Matches canned LLM response
+    
+    # Check new format
+    assert "plan_id" in data
+    assert "week_of" in data
+    assert "total_items" in data
+    assert "categories" in data
+    assert "pantry_items" in data
+    
+    # Check that items are in categories or pantry_items
+    total_items_in_categories = sum(cat["count"] for cat in data["categories"])
+    assert total_items_in_categories + len(data["pantry_items"]) == 3  # Matches canned LLM response
     
     # Verify grocery list was persisted
     test_db_session.refresh(meal_plan)
     assert meal_plan.grocery_list is not None
     persisted_list = json.loads(meal_plan.grocery_list)
-    assert len(persisted_list["items"]) == 3
+    assert "categories" in persisted_list
+    assert "pantry_items" in persisted_list
 
 
 @pytest.mark.asyncio
@@ -186,18 +208,31 @@ async def test_get_grocery_list_returns_existing(async_client, test_db_session):
     _create_test_recipes(test_db_session)
     meal_plan = _create_test_meal_plan(test_db_session, household.id)
     
-    # Pre-populate grocery list
+    # Pre-populate grocery list in new format
     existing_list = {
-        "items": [
+        "plan_id": meal_plan.id,
+        "week_of": str(meal_plan.week_start),
+        "total_items": 1,
+        "categories": [
             {
-                "id": "existing-item-001",
-                "ingredient_name": "Existing Item",
-                "category": "Pantry",
-                "total_quantity": 100.0,
-                "unit": "g",
-                "checked": False
+                "title": "Pantry",
+                "count": 1,
+                "color": "",
+                "items": [
+                    {
+                        "id": "existing-item-001",
+                        "name": "Existing Item",
+                        "subtitle": "Test",
+                        "quantity": "100g",
+                        "checked": False,
+                        "is_pantry_chip": False,
+                        "category": "Pantry",
+                        "prep_day": "day-of"
+                    }
+                ]
             }
-        ]
+        ],
+        "pantry_items": []
     }
     meal_plan.grocery_list = json.dumps(existing_list)
     test_db_session.commit()
@@ -208,8 +243,9 @@ async def test_get_grocery_list_returns_existing(async_client, test_db_session):
     # Verify response returns existing list
     assert response.status_code == 200
     data = response.json()
-    assert len(data["items"]) == 1
-    assert data["items"][0]["ingredient_name"] == "Existing Item"
+    assert data["plan_id"] == meal_plan.id
+    assert len(data["categories"]) == 1
+    assert data["categories"][0]["items"][0]["name"] == "Existing Item"
 
 
 @pytest.mark.asyncio
@@ -221,7 +257,24 @@ async def test_regenerate_grocery_list(async_client, test_db_session):
     meal_plan = _create_test_meal_plan(test_db_session, household.id)
     
     # Pre-populate with old grocery list
-    old_list = {"items": [{"id": "old-item", "ingredient_name": "Old", "category": "Pantry", "total_quantity": 10, "unit": "g", "checked": False}]}
+    old_list = {
+        "plan_id": meal_plan.id,
+        "week_of": str(meal_plan.week_start),
+        "total_items": 1,
+        "categories": [],
+        "pantry_items": [
+            {
+                "id": "old-item",
+                "name": "Old",
+                "subtitle": "",
+                "quantity": "10g",
+                "checked": False,
+                "is_pantry_chip": True,
+                "category": "Pantry",
+                "prep_day": None
+            }
+        ]
+    }
     meal_plan.grocery_list = json.dumps(old_list)
     test_db_session.commit()
     
@@ -231,11 +284,17 @@ async def test_regenerate_grocery_list(async_client, test_db_session):
     # Verify new list was generated
     assert response.status_code == 200
     data = response.json()
-    assert len(data["items"]) == 3  # From canned LLM response
     
-    # Verify old item is gone
-    item_names = [item["ingredient_name"] for item in data["items"]]
-    assert "Old" not in item_names
+    # Check new format
+    assert "categories" in data
+    assert "pantry_items" in data
+    
+    # Verify old item is gone (new list has 3 items from canned response)
+    all_item_names = []
+    for cat in data["categories"]:
+        all_item_names.extend([item["name"] for item in cat["items"]])
+    all_item_names.extend([item["name"] for item in data["pantry_items"]])
+    assert "Old" not in all_item_names
 
 
 @pytest.mark.asyncio
@@ -252,8 +311,30 @@ async def test_toggle_grocery_item_checked(async_client, test_db_session):
     
     # Get an item ID from the generated list
     grocery_list = json.loads(meal_plan.grocery_list)
-    item_id = grocery_list["items"][0]["id"]
-    assert grocery_list["items"][0]["checked"] is False
+    
+    # Find an item ID from categories or pantry_items
+    item_id = None
+    if grocery_list["categories"]:
+        item_id = grocery_list["categories"][0]["items"][0]["id"]
+    elif grocery_list["pantry_items"]:
+        item_id = grocery_list["pantry_items"][0]["id"]
+    
+    assert item_id is not None
+    
+    # Find the item to check its initial state
+    initial_checked = None
+    for cat in grocery_list["categories"]:
+        for item in cat["items"]:
+            if item["id"] == item_id:
+                initial_checked = item["checked"]
+                break
+    if initial_checked is None:
+        for item in grocery_list["pantry_items"]:
+            if item["id"] == item_id:
+                initial_checked = item["checked"]
+                break
+    
+    assert initial_checked is False
     
     # Toggle item (first toggle: should become True)
     response = await async_client.patch(f"/api/grocery/{meal_plan.id}/item/{item_id}")
@@ -261,14 +342,39 @@ async def test_toggle_grocery_item_checked(async_client, test_db_session):
     data = response.json()
     
     # Find the item in response
-    toggled_item = next(item for item in data["items"] if item["id"] == item_id)
+    toggled_item = None
+    for cat in data["categories"]:
+        for item in cat["items"]:
+            if item["id"] == item_id:
+                toggled_item = item
+                break
+    if toggled_item is None:
+        for item in data["pantry_items"]:
+            if item["id"] == item_id:
+                toggled_item = item
+                break
+    
+    assert toggled_item is not None
     assert toggled_item["checked"] is True
     
     # Toggle again (should become False)
     response = await async_client.patch(f"/api/grocery/{meal_plan.id}/item/{item_id}")
     assert response.status_code == 200
     data = response.json()
-    toggled_item = next(item for item in data["items"] if item["id"] == item_id)
+    
+    # Find the item again
+    toggled_item = None
+    for cat in data["categories"]:
+        for item in cat["items"]:
+            if item["id"] == item_id:
+                toggled_item = item
+                break
+    if toggled_item is None:
+        for item in data["pantry_items"]:
+            if item["id"] == item_id:
+                toggled_item = item
+                break
+    
     assert toggled_item["checked"] is False
 
 

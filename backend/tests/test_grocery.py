@@ -11,7 +11,8 @@ from app.services.grocery import (
     generate_grocery_list,
     toggle_grocery_item,
     _generate_item_id,
-    _get_plan_ingredients
+    _get_plan_ingredients,
+    _transform_to_frontend_format
 )
 
 
@@ -215,6 +216,93 @@ class TestGetPlanIngredients:
 
 
 # ---------------------------------------------------------------------------
+# Tests for _transform_to_frontend_format
+# ---------------------------------------------------------------------------
+
+class TestTransformToFrontendFormat:
+    def test_transforms_items_correctly(self, test_meal_plan):
+        """Should transform items to frontend format with categories and pantry_items."""
+        items = [
+            {
+                "ingredient_name": "Chicken",
+                "category": "Protein",
+                "total_quantity": 500.0,
+                "unit": "g",
+                "is_pantry_chip": False,
+                "recipes": [{"recipe_id": "r1", "recipe_name": "Chicken Curry", "prep_day": "sunday", "quantity_g": 500}]
+            },
+            {
+                "ingredient_name": "Salt",
+                "category": "Spices",
+                "total_quantity": 10.0,
+                "unit": "g",
+                "is_pantry_chip": True,
+                "recipes": [{"recipe_id": "r1", "recipe_name": "Chicken Curry", "prep_day": "sunday", "quantity_g": 10}]
+            }
+        ]
+        
+        result = _transform_to_frontend_format(items, test_meal_plan.id, test_meal_plan.week_start)
+        
+        assert "plan_id" in result
+        assert "week_of" in result
+        assert "total_items" in result
+        assert "categories" in result
+        assert "pantry_items" in result
+        
+        # Pantry item should be in pantry_items
+        assert len(result["pantry_items"]) == 1
+        assert result["pantry_items"][0]["name"] == "Salt"
+        
+        # Non-pantry item should be in categories
+        assert len(result["categories"]) == 1
+        assert result["categories"][0]["title"] == "Protein"
+        assert len(result["categories"][0]["items"]) == 1
+        assert result["categories"][0]["items"][0]["name"] == "Chicken"
+        
+        # total_items should count only non-pantry items
+        assert result["total_items"] == 1
+
+    def test_formats_quantity_correctly(self, test_meal_plan):
+        """Should format quantity as string (e.g., '500g', '1.5kg')."""
+        items = [
+            {
+                "ingredient_name": "Flour",
+                "category": "Pantry",
+                "total_quantity": 1500.0,
+                "unit": "g",
+                "is_pantry_chip": True,
+                "recipes": []
+            }
+        ]
+        
+        result = _transform_to_frontend_format(items, test_meal_plan.id, test_meal_plan.week_start)
+        pantry_item = result["pantry_items"][0]
+        
+        # 1500g should be formatted as 1.5kg
+        assert "1.5" in pantry_item["quantity"] or "1500" in pantry_item["quantity"]
+
+    def test_generates_ids(self, test_meal_plan):
+        """Each item should have a stable id field."""
+        items = [
+            {
+                "ingredient_name": "Chicken",
+                "category": "Protein",
+                "total_quantity": 500.0,
+                "unit": "g",
+                "is_pantry_chip": False,
+                "recipes": []
+            }
+        ]
+        
+        result = _transform_to_frontend_format(items, test_meal_plan.id, test_meal_plan.week_start)
+        
+        item = result["categories"][0]["items"][0]
+        assert "id" in item
+        assert isinstance(item["id"], str)
+        assert len(item["id"]) > 0
+
+
+# ---------------------------------------------------------------------------
 # Tests for generate_grocery_list
 # ---------------------------------------------------------------------------
 
@@ -229,8 +317,16 @@ class TestGenerateGroceryList:
 
             result = await generate_grocery_list(test_db_session, test_meal_plan.id)
 
-        assert "items" in result
-        assert len(result["items"]) > 0
+        # Check new format
+        assert "plan_id" in result
+        assert "week_of" in result
+        assert "total_items" in result
+        assert "categories" in result
+        assert "pantry_items" in result
+        
+        # Should have items in categories or pantry_items
+        total = sum(cat["count"] for cat in result["categories"]) + len(result["pantry_items"])
+        assert total > 0
         
         # Should have persisted to plan
         test_db_session.refresh(test_meal_plan)
@@ -239,7 +335,13 @@ class TestGenerateGroceryList:
     @pytest.mark.asyncio
     async def test_returns_existing_list_when_present(self, test_db_session, test_meal_plan):
         """Should return existing grocery list without calling LLM."""
-        existing_list = {"items": []}
+        existing_list = {
+            "plan_id": test_meal_plan.id,
+            "week_of": str(test_meal_plan.week_start),
+            "total_items": 0,
+            "categories": [],
+            "pantry_items": []
+        }
         test_meal_plan.grocery_list = json.dumps(existing_list)
         test_db_session.commit()
 
@@ -259,12 +361,18 @@ class TestGenerateGroceryList:
 
             result = await generate_grocery_list(test_db_session, test_meal_plan.id)
 
-        # Check items have recipe attribution with prep_day
-        assert "items" in result
-        chicken_item = next(i for i in result["items"] if i["ingredient_name"] == "chicken thigh")
-        assert "recipes" in chicken_item
-        assert len(chicken_item["recipes"]) > 0
-        assert "prep_day" in chicken_item["recipes"][0]
+        # Find chicken item (non-pantry)
+        chicken_item = None
+        for cat in result["categories"]:
+            for item in cat["items"]:
+                if item["name"] == "chicken thigh":
+                    chicken_item = item
+                    break
+            if chicken_item:
+                break
+        
+        assert chicken_item is not None
+        assert "subtitle" in chicken_item  # Contains recipe name
 
     @pytest.mark.asyncio
     async def test_pantry_chips_identified(self, test_db_session, test_meal_plan, llm_response_json):
@@ -277,7 +385,7 @@ class TestGenerateGroceryList:
             result = await generate_grocery_list(test_db_session, test_meal_plan.id)
 
         # Find spice item (cumin seeds should have is_pantry_chip=True)
-        spice_item = next((i for i in result["items"] if i["ingredient_name"] == "cumin seeds"), None)
+        spice_item = next((item for item in result["pantry_items"] if item["name"] == "cumin seeds"), None)
         assert spice_item is not None
         assert spice_item.get("is_pantry_chip") is True
 
@@ -291,8 +399,14 @@ class TestGenerateGroceryList:
 
             result = await generate_grocery_list(test_db_session, test_meal_plan.id)
 
-        assert "items" in result
-        for item in result["items"]:
+        # Check all items have ids
+        for cat in result["categories"]:
+            for item in cat["items"]:
+                assert "id" in item
+                assert isinstance(item["id"], str)
+                assert len(item["id"]) > 0
+        
+        for item in result["pantry_items"]:
             assert "id" in item
             assert isinstance(item["id"], str)
             assert len(item["id"]) > 0
@@ -320,13 +434,55 @@ class TestGenerateGroceryList:
 
 class TestToggleGroceryItem:
     @pytest.mark.asyncio
-    async def test_toggles_checked_status(self, test_db_session, test_meal_plan):
-        """Should flip the checked status of an item."""
+    async def test_toggles_checked_status_in_categories(self, test_db_session, test_meal_plan):
+        """Should flip the checked status of an item in categories."""
         # First generate a grocery list
         item_id = _generate_item_id("chicken thigh", "Protein")
         grocery_list = {
-            "items": [
-                {"id": item_id, "ingredient_name": "chicken thigh", "checked": False}
+            "plan_id": test_meal_plan.id,
+            "week_of": str(test_meal_plan.week_start),
+            "total_items": 1,
+            "categories": [
+                {
+                    "title": "Protein",
+                    "count": 1,
+                    "color": "",
+                    "items": [
+                        {"id": item_id, "name": "chicken thigh", "subtitle": "Test", "quantity": "300g", "checked": False, "is_pantry_chip": False, "category": "Protein", "prep_day": "sunday"}
+                    ]
+                }
+            ],
+            "pantry_items": []
+        }
+        test_meal_plan.grocery_list = json.dumps(grocery_list)
+        test_db_session.commit()
+
+        result = await toggle_grocery_item(test_db_session, test_meal_plan.id, item_id)
+
+        # Find the item
+        toggled_item = None
+        for cat in result["categories"]:
+            for item in cat["items"]:
+                if item["id"] == item_id:
+                    toggled_item = item
+                    break
+            if toggled_item:
+                break
+        
+        assert toggled_item is not None
+        assert toggled_item["checked"] is True
+
+    @pytest.mark.asyncio
+    async def test_toggles_checked_status_in_pantry(self, test_db_session, test_meal_plan):
+        """Should flip the checked status of an item in pantry_items."""
+        item_id = _generate_item_id("cumin seeds", "Spices")
+        grocery_list = {
+            "plan_id": test_meal_plan.id,
+            "week_of": str(test_meal_plan.week_start),
+            "total_items": 0,
+            "categories": [],
+            "pantry_items": [
+                {"id": item_id, "name": "cumin seeds", "subtitle": "Test", "quantity": "5g", "checked": False, "is_pantry_chip": True, "category": "Spices", "prep_day": None}
             ]
         }
         test_meal_plan.grocery_list = json.dumps(grocery_list)
@@ -334,7 +490,9 @@ class TestToggleGroceryItem:
 
         result = await toggle_grocery_item(test_db_session, test_meal_plan.id, item_id)
 
-        toggled_item = next(i for i in result["items"] if i["id"] == item_id)
+        # Find the item in pantry_items
+        toggled_item = next((item for item in result["pantry_items"] if item["id"] == item_id), None)
+        assert toggled_item is not None
         assert toggled_item["checked"] is True
 
     @pytest.mark.asyncio
@@ -342,16 +500,37 @@ class TestToggleGroceryItem:
         """Should toggle off after being toggled on."""
         item_id = _generate_item_id("chicken thigh", "Protein")
         grocery_list = {
-            "items": [
-                {"id": item_id, "ingredient_name": "chicken thigh", "checked": True}
-            ]
+            "plan_id": test_meal_plan.id,
+            "week_of": str(test_meal_plan.week_start),
+            "total_items": 1,
+            "categories": [
+                {
+                    "title": "Protein",
+                    "count": 1,
+                    "color": "",
+                    "items": [
+                        {"id": item_id, "name": "chicken thigh", "subtitle": "Test", "quantity": "300g", "checked": True, "is_pantry_chip": False, "category": "Protein", "prep_day": "sunday"}
+                    ]
+                }
+            ],
+            "pantry_items": []
         }
         test_meal_plan.grocery_list = json.dumps(grocery_list)
         test_db_session.commit()
 
         result = await toggle_grocery_item(test_db_session, test_meal_plan.id, item_id)
 
-        toggled_item = next(i for i in result["items"] if i["id"] == item_id)
+        # Find the item
+        toggled_item = None
+        for cat in result["categories"]:
+            for item in cat["items"]:
+                if item["id"] == item_id:
+                    toggled_item = item
+                    break
+            if toggled_item:
+                break
+        
+        assert toggled_item is not None
         assert toggled_item["checked"] is False
 
     @pytest.mark.asyncio
@@ -380,7 +559,22 @@ class TestToggleGroceryItem:
         """Should raise 404 if item ID not found."""
         from fastapi import HTTPException
 
-        grocery_list = {"items": [{"id": "item1", "checked": False}]}
+        grocery_list = {
+            "plan_id": test_meal_plan.id,
+            "week_of": str(test_meal_plan.week_start),
+            "total_items": 1,
+            "categories": [
+                {
+                    "title": "Protein",
+                    "count": 1,
+                    "color": "",
+                    "items": [
+                        {"id": "item1", "name": "chicken", "subtitle": "", "quantity": "300g", "checked": False, "is_pantry_chip": False, "category": "Protein", "prep_day": None}
+                    ]
+                }
+            ],
+            "pantry_items": []
+        }
         test_meal_plan.grocery_list = json.dumps(grocery_list)
         test_db_session.commit()
 

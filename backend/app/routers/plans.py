@@ -16,7 +16,7 @@ from app.schemas.plan import (
     PlanGenerateRequest, PlanGenerateChunk, PlanOut, PlanUpdate
 )
 from app.schemas.recipe import RecipeIn, Ingredient
-from app.schemas.grocery import GroceryList
+from app.schemas.grocery import GroceryListResponse as GroceryList
 from app.prompts.plan_gen import build_plan_gen_prompt
 from app.services.llm import get_llm, LLMResponseError
 from app.services.nutrition import resolve_recipe_nutrition
