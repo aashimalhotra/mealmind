@@ -86,7 +86,7 @@ function RecipeDetailScreen() {
         </div>
       </div>
 
-      <div className="p-page pb-24">
+      <div className="p-page">
         {/* Status badge - shown if prep_session_id exists */}
         {recipe.prep_session_id && (
           <div className="bg-success/8 rounded-card border border-success/20 p-3 flex items-center gap-2.5 mb-4">

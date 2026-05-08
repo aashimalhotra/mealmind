@@ -160,7 +160,7 @@ const PrepGuide: React.FC = () => {
         />
       </div>
 
-      <div className="px-5 pt-4 pb-20">
+      <div className="px-5 pt-4">
         {/* Completed Steps (Collapsible) */}
         {completedSteps.length > 0 && (
           <div className="mb-4">

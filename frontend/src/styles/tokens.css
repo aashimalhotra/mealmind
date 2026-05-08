@@ -80,4 +80,7 @@
   --space-4xl: 18px;
   --space-5xl: 20px;
   --page-padding: 20px;
+
+  /* Bottom Navigation */
+  --bottom-nav-height: 64px;
 }

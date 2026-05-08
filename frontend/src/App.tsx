@@ -22,16 +22,18 @@ function App() {
   console.log('App render:', { isChatOpen, isFabPulsing });
 
   return (
-    <div className="min-h-dvh max-w-md mx-auto bg-bg relative">
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/recipes" element={<RecipesTab />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/plan/review/:id" element={<PlanReview />} />
-        <Route path="/recipe/:id" element={<RecipeDetail />} />
-        <Route path="/prep/:sessionId" element={<PrepGuide />} />
-        <Route path="/grocery/:planId" element={<GroceryList />} />
-      </Routes>
+    <div className="min-h-dvh max-w-md mx-auto bg-bg flex flex-col">
+      <main className="flex-1 overflow-y-auto" style={{ paddingBottom: 'calc(var(--bottom-nav-height) + 1rem)' }}>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/recipes" element={<RecipesTab />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/plan/review/:id" element={<PlanReview />} />
+          <Route path="/recipe/:id" element={<RecipeDetail />} />
+          <Route path="/prep/:sessionId" element={<PrepGuide />} />
+          <Route path="/grocery/:planId" element={<GroceryList />} />
+        </Routes>
+      </main>
       <BottomNav />
       <FAB pulse={isFabPulsing} onClick={toggleChat} />
       <BottomSheet open={isChatOpen} onClose={closeChat}>

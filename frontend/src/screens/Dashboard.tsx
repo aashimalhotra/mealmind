@@ -255,7 +255,6 @@ const Dashboard: React.FC = () => {
           <div className="h-24 rounded-xl bg-gray-200 animate-pulse mb-4" />
           <div className="h-20 rounded-xl bg-gray-200 animate-pulse" />
         </div>
-        <div className="h-[80px]" />
       </div>
     );
   }
@@ -302,7 +301,6 @@ const Dashboard: React.FC = () => {
             </>
           )}
         </div>
-        <div className="h-[80px]" />
       </div>
     );
   }
@@ -430,12 +428,12 @@ const Dashboard: React.FC = () => {
           <svg width="20" height="20" viewBox="0 0 20 20" className="text-text-tertiary">
             <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
           </svg>
-        </div>
+          </div>
         )}
+
       </div>
-      <div className="h-[80px]" />
     </div>
   );
-};
+}
 
 export default Dashboard;
