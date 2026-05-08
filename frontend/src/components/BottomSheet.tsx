@@ -27,6 +27,9 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
+  // Debug log
+  console.log('BottomSheet render:', { open, hasPortalContainer: !!portalContainer });
+
   // Create portal container if it doesn't exist
   useEffect(() => {
     let container = document.getElementById('bottom-sheet-portal') as HTMLDivElement | null;

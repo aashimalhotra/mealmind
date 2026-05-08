@@ -39,7 +39,12 @@ def main():
                     'authentic_name': 'तंदूरी चिकन',
                     'description': 'Classic Indian grilled chicken marinated in spiced yogurt.',
                     'cuisine': 'Indian',
-                    'ingredients': json.dumps({'chicken': '500g', 'yogurt': '1 cup', 'tandoori masala': '2 tbsp', 'lemon juice': '1 tbsp'}),
+                    'ingredients': json.dumps([
+                        {'name': 'chicken', 'quantity': '500g'},
+                        {'name': 'yogurt', 'quantity': '1 cup'},
+                        {'name': 'tandoori masala', 'quantity': '2 tbsp'},
+                        {'name': 'lemon juice', 'quantity': '1 tbsp'}
+                    ]),
                     'prep_steps': json.dumps({'1': 'Mix yogurt, tandoori masala, lemon juice, salt.', '2': 'Marinate chicken for 2+ hours.', '3': 'Grill at 200C for 25 mins.'}),
                     'serving_instructions': json.dumps({'note': 'Serve with mint chutney and naan.'}),
                     'calories_per_serving': 320,
@@ -56,7 +61,12 @@ def main():
                     'authentic_name': 'दाल तड़का',
                     'description': 'Yellow lentil soup tempered with spices and ghee.',
                     'cuisine': 'Indian',
-                    'ingredients': json.dumps({'toor dal': '1 cup', 'onion': '1 medium', 'tomato': '1 medium', 'ghee': '1 tbsp'}),
+                    'ingredients': json.dumps([
+                        {'name': 'toor dal', 'quantity': '1 cup'},
+                        {'name': 'onion', 'quantity': '1 medium'},
+                        {'name': 'tomato', 'quantity': '1 medium'},
+                        {'name': 'ghee', 'quantity': '1 tbsp'}
+                    ]),
                     'prep_steps': json.dumps({'1': 'Boil dal until soft.', '2': 'Temper with onions, tomatoes, spices in ghee.', '3': 'Mix dal and temper, simmer 5 mins.'}),
                     'serving_instructions': json.dumps({'note': 'Serve with rice or roti.'}),
                     'calories_per_serving': 180,
@@ -73,7 +83,12 @@ def main():
                     'authentic_name': 'पालक पनीर',
                     'description': 'Cottage cheese cubes in spiced spinach gravy.',
                     'cuisine': 'Indian',
-                    'ingredients': json.dumps({'spinach': '500g', 'paneer': '200g', 'cream': '2 tbsp', 'spices': 'to taste'}),
+                    'ingredients': json.dumps([
+                        {'name': 'spinach', 'quantity': '500g'},
+                        {'name': 'paneer', 'quantity': '200g'},
+                        {'name': 'cream', 'quantity': '2 tbsp'},
+                        {'name': 'spices', 'quantity': 'to taste'}
+                    ]),
                     'prep_steps': json.dumps({'1': 'Blanch spinach, blend to puree.', '2': 'Fry paneer cubes until golden.', '3': 'Cook puree with spices, add paneer and cream.'}),
                     'serving_instructions': json.dumps({'note': 'Serve with naan or paratha.'}),
                     'calories_per_serving': 250,
@@ -90,7 +105,12 @@ def main():
                     'authentic_name': 'चिकन बिरयानी',
                     'description': 'Fragrant rice dish layered with spiced chicken and herbs.',
                     'cuisine': 'Indian',
-                    'ingredients': json.dumps({'basmati rice': '2 cups', 'chicken': '500g', 'yogurt': '1/2 cup', 'biryani masala': '2 tbsp'}),
+                    'ingredients': json.dumps([
+                        {'name': 'basmati rice', 'quantity': '2 cups'},
+                        {'name': 'chicken', 'quantity': '500g'},
+                        {'name': 'yogurt', 'quantity': '1/2 cup'},
+                        {'name': 'biryani masala', 'quantity': '2 tbsp'}
+                    ]),
                     'prep_steps': json.dumps({'1': 'Marinate chicken in yogurt and spices for 1 hour.', '2': 'Par-boil rice with whole spices.', '3': 'Layer rice and chicken, dum cook for 20 mins.'}),
                     'serving_instructions': json.dumps({'note': 'Serve with raita and salad.'}),
                     'calories_per_serving': 450,
@@ -107,7 +127,12 @@ def main():
                     'authentic_name': 'छोले मसाला',
                     'description': 'Chickpea curry in tangy tomato-onion gravy.',
                     'cuisine': 'Indian',
-                    'ingredients': json.dumps({'chickpeas': '1 cup (soaked)', 'onion': '2 medium', 'tomato': '2 medium', 'chana masala': '2 tbsp'}),
+                    'ingredients': json.dumps([
+                        {'name': 'chickpeas', 'quantity': '1 cup (soaked)'},
+                        {'name': 'onion', 'quantity': '2 medium'},
+                        {'name': 'tomato', 'quantity': '2 medium'},
+                        {'name': 'chana masala', 'quantity': '2 tbsp'}
+                    ]),
                     'prep_steps': json.dumps({'1': 'Boil chickpeas until tender.', '2': 'Cook onions, tomatoes, spices to make gravy.', '3': 'Add chickpeas, simmer 10 mins.'}),
                     'serving_instructions': json.dumps({'note': 'Serve with bhature or rice.'}),
                     'calories_per_serving': 220,

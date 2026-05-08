@@ -18,6 +18,9 @@ function App() {
   const toggleChat = useChatStore((state) => state.toggleChat);
   const isFabPulsing = useChatStore((state) => state.isFabPulsing);
 
+  // Debug log
+  console.log('App render:', { isChatOpen, isFabPulsing });
+
   return (
     <div className="min-h-dvh max-w-md mx-auto bg-bg relative">
       <Routes>
