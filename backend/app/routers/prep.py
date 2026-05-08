@@ -11,7 +11,7 @@ from app.db.session import get_db
 from app.schemas.prep import PrepStepSchema, PrepSessionResponse, StepUpdate
 from app.services.prep_sequencer import sequence_prep
 
-router = APIRouter(prefix="/api/prep", tags=["prep"])
+router = APIRouter(tags=["prep"])
 
 
 @router.post("/from-plan/{plan_id}/{day}", response_model=PrepSessionResponse, status_code=201)
