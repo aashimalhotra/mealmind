@@ -22,6 +22,8 @@ const FilterTabs: React.FC<FilterTabsProps> = ({ activeFilter, onFilterChange })
         return (
           <button
             key={filter.key}
+            data-testid="filter-tab"
+            data-active={isActive}
             className={`flex-1 px-[var(--space-3xl)] py-[var(--space-md)] text-center rounded-[var(--radius-lg)] border transition-colors ${
               isActive
                 ? 'bg-[var(--color-primary)] text-[var(--color-dark-text)] font-[var(--font-weight-medium)] border-transparent'

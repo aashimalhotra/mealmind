@@ -20,13 +20,16 @@ test.describe('Grocery List Visual Baseline', () => {
   test('grocery list items can be checked', async ({ page }) => {
     await page.goto('/grocery/e2e-plan-1');
     await page.waitForLoadState('networkidle');
-    
+
+    // Wait for grocery items to load
+    await page.waitForSelector('[data-testid="grocery-checkbox"]', { timeout: 10000 });
+
     // Find first grocery item checkbox
     const firstCheckbox = page.locator('[data-testid="grocery-checkbox"]').first();
-    
+
     // Click to check
     await firstCheckbox.click();
-    
+
     // Verify it's checked (should have line-through style)
     await expect(firstCheckbox).toBeChecked();
   });
@@ -35,12 +38,15 @@ test.describe('Grocery List Visual Baseline', () => {
   test('filter tabs work correctly', async ({ page }) => {
     await page.goto('/grocery/e2e-plan-1');
     await page.waitForLoadState('networkidle');
-    
-    // Click on "Sun prep" filter
-    await page.getByText('Sun prep').click();
-    
-    // Verify filter is active (has active styling - primary background)
-    const sunPrepTab = page.getByText('Sun prep');
-    await expect(sunPrepTab).toHaveClass(/bg-\[var\(--color-primary\)\]/);
+
+    // Wait for filter tabs to load
+    await page.waitForSelector('[data-testid="filter-tab"]', { timeout: 10000 });
+
+    // Click on "Sun prep" filter tab (using data-testid for specificity)
+    const sunPrepTab = page.locator('[data-testid="filter-tab"]').filter({ hasText: 'Sun prep' }).first();
+    await sunPrepTab.click();
+
+    // Verify filter is active - check for active styling
+    await expect(sunPrepTab).toHaveAttribute('data-active', 'true');
   });
 });
