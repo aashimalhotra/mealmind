@@ -67,10 +67,20 @@ class RecipeOut(BaseModel):
     @classmethod
     def parse_ingredients(cls, v):
         if isinstance(v, str):
-            return json.loads(v)
+            v = json.loads(v)
         if isinstance(v, dict):
             # If it's a dict, convert to list by extracting values
-            return list(v.values())
+            v = list(v.values())
+        if isinstance(v, list):
+            # Filter out items that are not dicts (malformed data like strings)
+            valid_items = []
+            for item in v:
+                if isinstance(item, dict):
+                    valid_items.append(item)
+                else:
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Skipping malformed ingredient item: {item}")
+            return valid_items
         return v
 
     @field_validator('prep_steps', mode='before')
@@ -92,6 +102,21 @@ class RecipeOut(BaseModel):
             # If it's a dict like {'note': 'Serve...'}, extract values to list
             return list(v.values())
         return v
+
+    @field_validator('tags', mode='before')
+    @classmethod
+    def parse_tags(cls, v):
+        if isinstance(v, str):
+            try:
+                v = json.loads(v)
+            except json.JSONDecodeError:
+                return None
+        if isinstance(v, dict):
+            # Convert dict to list of values
+            return list(v.values())
+        if isinstance(v, list):
+            return v
+        return None
 
     model_config = ConfigDict(from_attributes=True)
 

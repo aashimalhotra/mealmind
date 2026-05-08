@@ -14,12 +14,38 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _parse_json_field(value, field_name="field"):
+    """Parse a JSON field that might be a string or already parsed object."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON for {field_name}: {e}")
+            return None
+    return value
+
+
 def _parse_recipe_to_out(recipe: Recipe) -> RecipeOut:
     """Helper to convert DB Recipe model to RecipeOut schema, parsing JSON fields."""
-    ingredients = json.loads(recipe.ingredients) if recipe.ingredients else []
-    prep_steps = json.loads(recipe.prep_steps) if recipe.prep_steps else []
-    serving_instructions = json.loads(recipe.serving_instructions) if recipe.serving_instructions else None
-    tags = json.loads(recipe.tags) if recipe.tags else None
+    # Parse JSON fields
+    ingredients = _parse_json_field(recipe.ingredients, "ingredients")
+    if ingredients is None:
+        ingredients = []
+    
+    prep_steps = _parse_json_field(recipe.prep_steps, "prep_steps")
+    if prep_steps is None:
+        prep_steps = []
+    
+    serving_instructions = _parse_json_field(recipe.serving_instructions, "serving_instructions")
+    
+    tags = _parse_json_field(recipe.tags, "tags")
+    # Handle case where tags might be a dict instead of list
+    if isinstance(tags, dict):
+        tags = list(tags.values())
+    if tags is None:
+        tags = []
 
     return RecipeOut(
         id=recipe.id,
