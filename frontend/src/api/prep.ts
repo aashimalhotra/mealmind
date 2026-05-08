@@ -1,21 +1,12 @@
 import type { PrepStep } from '../components/ActiveStepCard';
-import type { BackgroundTimer as BGTimer } from '../components/BackgroundTimerList';
 
 export interface PrepSession {
   id: string;
-  session_id: string;
-  title: string;
-  subtitle: string;
-  est_total_min: number;
-  dishes: {
-    id: string;
-    name: string;
-    color: string;
-    type: string;
-  }[];
+  plan_id: string;
+  day: string;
+  status: string; // 'in_progress' | 'completed'
   steps: PrepStep[];
-  completed_steps_count: number;
-  background_timers: BGTimer[];
+  created_at: string; // ISO datetime string
 }
 
 const API_BASE = process.env.REACT_APP_API_BASE || '/api';

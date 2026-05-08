@@ -28,19 +28,20 @@ def create_prep_session(plan_id: str, day: str, db: Session = Depends(get_db)):
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid meal plan data format")
 
-    day_meals = plan_data.get(day, [])
-    if not day_meals:
+    # plan_data[day] is an object with slots: { "breakfast": {...}, "lunch": {...}, "dinner": {...} }
+    day_data = plan_data.get(day, {})
+    if not day_data or not isinstance(day_data, dict):
         raise HTTPException(status_code=400, detail=f"No meals scheduled for {day}")
 
-    # Extract recipe IDs from day's meals
+    # Extract recipe IDs from each slot in the day
     recipe_ids = []
-    for meal in day_meals:
-        if isinstance(meal, str):
-            recipe_ids.append(meal)
-        elif isinstance(meal, dict):
-            recipe_id = meal.get("recipe_id") or meal.get("id")
-            if recipe_id:
-                recipe_ids.append(recipe_id)
+    for slot in ["breakfast", "lunch", "dinner"]:
+        slot_data = day_data.get(slot)
+        if not slot_data or not isinstance(slot_data, dict):
+            continue
+        recipe_id = slot_data.get("recipe_id")
+        if recipe_id and recipe_id not in recipe_ids:
+            recipe_ids.append(recipe_id)
 
     if not recipe_ids:
         raise HTTPException(status_code=400, detail="No valid recipe IDs found for day")
@@ -88,6 +89,38 @@ def create_prep_session(plan_id: str, day: str, db: Session = Depends(get_db)):
         status=db_session.status,
         steps=[PrepStepSchema(**step) for step in steps_dicts],
         created_at=db_session.created_at
+    )
+
+
+@router.get("/by-plan/{plan_id}/today", response_model=PrepSessionResponse)
+def get_todays_prep_session(plan_id: str, db: Session = Depends(get_db)):
+    """Get today's prep session for a given plan (if exists)."""
+    days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    today_day = days[datetime.now().weekday()]
+
+    session = (
+        db.query(PrepSession)
+        .filter(PrepSession.plan_id == plan_id, PrepSession.day == today_day)
+        .order_by(PrepSession.created_at.desc())
+        .first()
+    )
+    if not session:
+        raise HTTPException(status_code=404, detail="No prep session found for today")
+
+    # Parse steps from JSON
+    try:
+        steps_data = json.loads(session.steps_json)
+        steps = [PrepStepSchema(**step) for step in steps_data]
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Invalid steps data stored")
+
+    return PrepSessionResponse(
+        id=session.id,
+        plan_id=session.plan_id,
+        day=session.day,
+        status=session.status,
+        steps=steps,
+        created_at=session.created_at
     )
 
 

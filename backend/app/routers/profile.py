@@ -16,7 +16,7 @@ def get_profile(db: Session = Depends(get_db)):
     if not household:
         household = Household(
             name="Home",
-            prep_days=json.dumps([]),
+            prep_days=json.dumps(["sunday", "wednesday"]),
             dineout_days=json.dumps([])
         )
         db.add(household)
@@ -75,7 +75,7 @@ def update_profile(profile_update: ProfileUpdate, db: Session = Depends(get_db))
         # Create default household if missing (should not happen if GET was called first)
         household = Household(
             name="Home",
-            prep_days=json.dumps([]),
+            prep_days=json.dumps(["sunday", "wednesday"]),
             dineout_days=json.dumps([])
         )
         db.add(household)

@@ -68,7 +68,26 @@ const Dashboard: React.FC = () => {
   const todayWeekday = getTodayWeekday();
   
   // Hook for today's prep session - only call when plan exists
-  const { prepSession: _, isPrepDay: __, startPrep: ___ } = useTodaysPrepSession(plan?.id);
+  const { prepSession, isPrepDay, isLoading: prepLoading, isStarting, startPrep } = useTodaysPrepSession(plan?.id);
+
+  // Handle prep day card click
+  const handlePrepDayClick = useCallback(async () => {
+    if (!plan?.id) return;
+    if (prepSession) {
+      // Existing session exists, navigate directly
+      navigate(`/prep/${prepSession.id}`);
+    } else {
+      // No session yet, start one
+      try {
+        const session = await startPrep();
+        if (session?.id) {
+          navigate(`/prep/${session.id}`);
+        }
+      } catch (err) {
+        console.error('Failed to start prep session:', err);
+      }
+    }
+  }, [plan?.id, prepSession, startPrep, navigate]);
 
   // FAB pulse control
   const setFabPulsing = useChatStore((state) => state.setFabPulsing);
@@ -394,11 +413,18 @@ const Dashboard: React.FC = () => {
             ]}
           />
         </div>
-        <PrepDayCard
-          dayLabel="Prep day — Wednesday"
-          summary="Spiced ground meat + creamy spinach + quinoa pilaf"
-          durationLabel="~1.5 hrs · covers Thu–Sat"
-        />
+        {/* Prep Day Card - only render if today is a prep day */}
+        {isPrepDay && (
+          <PrepDayCard
+            dayLabel={`Prep day — ${todayWeekday.charAt(0).toUpperCase() + todayWeekday.slice(1)}`}
+            summary="Batch cooking day — multiple recipes"
+            durationLabel="~1.5 hrs estimated"
+            onClick={handlePrepDayClick}
+          />
+        )}
+        {prepLoading && isPrepDay && (
+          <div className="h-24 rounded-xl bg-gray-200 animate-pulse mb-4" />
+        )}
         {insight ? (
           <AIInsightCard
             title={insight.title}
