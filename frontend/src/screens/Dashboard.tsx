@@ -46,6 +46,7 @@ const Dashboard: React.FC = () => {
   const [selectedPerson, setSelectedPerson] = useState<1500 | 1800>(1500);
   const [genStage, setGenStage] = useState<string | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
+  const [prepError, setPrepError] = useState<string | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(isInstallAvailable());
   
   // Listen for install availability
@@ -73,6 +74,7 @@ const Dashboard: React.FC = () => {
   // Handle prep day card click
   const handlePrepDayClick = useCallback(async () => {
     if (!plan?.id) return;
+    setPrepError(null);
     if (prepSession) {
       // Existing session exists, navigate directly
       navigate(`/prep/${prepSession.id}`);
@@ -84,6 +86,8 @@ const Dashboard: React.FC = () => {
           navigate(`/prep/${session.id}`);
         }
       } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to start prep session';
+        setPrepError(errorMessage);
         console.error('Failed to start prep session:', err);
       }
     }
@@ -357,6 +361,14 @@ const Dashboard: React.FC = () => {
                 Install
               </button>
             )}
+            <button
+              onClick={handleGeneratePlan}
+              className="px-3 py-1.5 text-sm font-medium text-primary border border-primary rounded-lg hover:opacity-90 transition-opacity"
+              disabled={!!genStage}
+              title="Regenerate meal plan"
+            >
+              {genStage ? 'Generating...' : 'Regenerate'}
+            </button>
             <div className="w-10 h-10 rounded-full bg-[#C4956A] flex items-center justify-center font-medium text-sm text-text-primary">
               {userInitials}
             </div>
@@ -421,6 +433,9 @@ const Dashboard: React.FC = () => {
             durationLabel="~1.5 hrs estimated"
             onClick={handlePrepDayClick}
           />
+        )}
+        {prepError && (
+          <p className="text-red-500 text-sm mt-2 mb-4">{prepError}</p>
         )}
         {prepLoading && isPrepDay && (
           <div className="h-24 rounded-xl bg-gray-200 animate-pulse mb-4" />
